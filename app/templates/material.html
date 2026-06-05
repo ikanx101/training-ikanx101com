@@ -67,17 +67,17 @@
   </div>
 
   <!-- Files -->
-  {% if material.files %}
+  {% if mat_files %}
   <div class="bg-white rounded-xl shadow-sm overflow-hidden">
     <div class="px-5 py-3 border-b border-gray-100">
       <h2 class="font-semibold text-gray-800 text-sm flex items-center gap-2">
         <i class="fas fa-paperclip text-blue-500"></i> File & Data
-        <span class="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">{{ material.files|length }}</span>
+        <span class="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full">{{ mat_files|length }}</span>
       </h2>
       <p class="text-xs text-gray-400 mt-0.5">File pendukung yang bisa kamu unduh untuk materi ini.</p>
     </div>
     <div class="divide-y divide-gray-50">
-      {% for f in material.files %}
+      {% for f in mat_files %}
       {% set ext = f.original_name.rsplit('.', 1)[-1].lower() if '.' in f.original_name else '' %}
       <div class="flex items-center gap-3 px-5 py-3 hover:bg-gray-50 transition">
         <div class="text-2xl flex-shrink-0">
@@ -101,7 +101,8 @@
             {% endif %}
           </p>
         </div>
-        <a href="/uploads/materials/{{ material.id }}/{{ f.stored_name }}" download="{{ f.original_name }}"
+        <a href="/uploads/materials/{{ material.id }}/{{ f.stored_name }}"
+           download="{{ f.original_name }}"
            class="flex-shrink-0 flex items-center gap-1.5 bg-blue-600 text-white text-xs px-4 py-2 rounded-lg hover:bg-blue-700 transition font-medium">
           <i class="fas fa-download"></i> Unduh
         </a>

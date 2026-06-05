@@ -9,6 +9,7 @@ from app.models.progress import UserProgress
 from app.models.bookmark import Bookmark
 from app.models.comment import Comment
 from app.models.quiz import Quiz, QuizAttempt, QuizAnswer, QuizChoice
+from app.models.material_file import MaterialFile
 from app.services.auth_service import get_current_user_from_cookie
 from app.services.material_service import search_materials
 
@@ -99,6 +100,7 @@ async def material_page(material_id: int, request: Request, db: Session = Depend
         db.commit()
     related = db.query(Material).filter(Material.subcategory_id == material.subcategory_id, Material.is_published == True, Material.id != material_id).order_by(Material.order).limit(5).all()
     categories = db.query(Category).order_by(Category.order).all()
+    mat_files = db.query(MaterialFile).filter(MaterialFile.material_id == material_id).order_by(MaterialFile.created_at).all()
     # Quiz
     quiz = db.query(Quiz).filter(Quiz.material_id == material_id, Quiz.is_active == True).first()
     quiz_attempt = None
@@ -126,6 +128,7 @@ async def material_page(material_id: int, request: Request, db: Session = Depend
         "request": request, "user": user, "material": material,
         "progress": progress, "bookmarked": bookmarked,
         "related": related, "categories": categories, "comments": comments,
+        "mat_files": mat_files,
         "quiz": quiz, "quiz_attempt": quiz_attempt,
         "quiz_answers_map": quiz_answers_map, "best_attempt": best_attempt,
     })

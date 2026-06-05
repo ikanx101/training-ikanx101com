@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Menunggu Persetujuan — Study Data{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto mt-8">
+  <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-amber-400 to-orange-400 px-8 py-10 text-center">
+      <div class="w-20 h-20 bg-white bg-opacity-30 rounded-full flex items-center justify-center mx-auto mb-4">
+        <i class="fas fa-clock text-white text-4xl"></i>
+      </div>
+      <h1 class="text-2xl font-bold text-white mb-1">Menunggu Persetujuan</h1>
+      <p class="text-amber-100 text-sm">Akunmu sedang dalam proses verifikasi oleh admin</p>
+    </div>
+
+    <!-- Body -->
+    <div class="px-8 py-6 space-y-4">
+      <!-- Info akun -->
+      <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-amber-300 flex items-center justify-center text-white font-bold text-sm flex-shrink-0">
+          {{ user.full_name[0].upper() }}
+        </div>
+        <div>
+          <p class="font-semibold text-gray-800 text-sm">{{ user.full_name }}</p>
+          <p class="text-gray-500 text-xs">{{ user.email }}</p>
+          <p class="text-gray-400 text-xs mt-0.5">Daftar: {{ user.created_at.strftime('%d %b %Y, %H:%M') }}</p>
+        </div>
+      </div>
+
+      <!-- Penjelasan -->
+      <div class="space-y-3 text-sm text-gray-600">
+        <div class="flex items-start gap-3">
+          <div class="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+            <i class="fas fa-info text-blue-500 text-xs"></i>
+          </div>
+          <p>Pendaftaran kamu berhasil! Admin sedang memverifikasi akunmu sebelum memberikan akses ke seluruh materi.</p>
+        </div>
+        <div class="flex items-start gap-3">
+          <div class="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+            <i class="fas fa-check text-green-500 text-xs"></i>
+          </div>
+          <p>Setelah disetujui, kamu bisa langsung login dan mengakses semua materi Data Science.</p>
+        </div>
+        <div class="flex items-start gap-3">
+          <div class="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+            <i class="fas fa-envelope text-purple-500 text-xs"></i>
+          </div>
+          <p>Hubungi admin jika butuh akses segera.</p>
+        </div>
+      </div>
+
+      <!-- Tombol -->
+      <div class="pt-2 flex gap-3">
+        <a href="/auth/logout"
+           class="flex-1 text-center bg-gray-100 text-gray-700 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-200 transition">
+          <i class="fas fa-sign-out-alt mr-1"></i>Logout
+        </a>
+        <a href="/auth/pending"
+           class="flex-1 text-center bg-amber-500 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-amber-600 transition">
+          <i class="fas fa-sync mr-1"></i>Cek Status
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

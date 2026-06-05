@@ -1,0 +1,7 @@
+Pada folder ini, saya ingin kamu membuatsatu websites seperti Learning Management System bernama: "Study Data with ikanx101.com"
+
+User bisa mendaftar ke melalui website ini dan mendapatkan akses login.
+
+Kemudian user bisa masuk ke dalam halaman utama untuk memilih materi apa yang mau dia pelajari. Bentuk materi berupa video youtube.
+
+Khusus untuk admin, dia bisa mengelola administrasi user dan materi. Admin bisa menambah materi dan memasukkan link youtube ke dalam sistem LMS ini.

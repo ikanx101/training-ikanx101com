@@ -21,7 +21,25 @@ app.include_router(admin.router)
 @app.on_event("startup")
 async def startup():
     create_tables()
+    _migrate_db()
     _seed_admin()
+
+def _migrate_db():
+    from sqlalchemy import text
+    from app.database import engine
+    from app.config import DATABASE_URL
+    with engine.connect() as conn:
+        try:
+            if DATABASE_URL.startswith("sqlite"):
+                conn.execute(text("ALTER TABLE users ADD COLUMN is_approved BOOLEAN DEFAULT 0"))
+            else:
+                conn.execute(text("ALTER TABLE users ADD COLUMN is_approved BOOLEAN DEFAULT FALSE"))
+            conn.commit()
+            # Semua user yang sudah ada sebelumnya langsung di-approve (backward compat)
+            conn.execute(text("UPDATE users SET is_approved = TRUE"))
+            conn.commit()
+        except Exception:
+            pass  # Column sudah ada, tidak perlu migrasi
 
 def _seed_admin():
     from app.database import SessionLocal
@@ -37,6 +55,7 @@ def _seed_admin():
                 full_name="Ikang Fadhli",
                 bio="Admin Study Data with ikanx101.com",
                 role="admin",
+                is_approved=True,
                 security_question="Apa nama hewan peliharaan pertama kamu?",
                 security_answer_hash=get_password_hash("kucing"),
             )

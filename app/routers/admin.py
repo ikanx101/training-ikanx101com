@@ -11,7 +11,7 @@ from app.models.category import Category, SubCategory
 from app.models.material import Material
 from app.models.progress import UserProgress
 from app.models.comment import Comment
-from app.models.quiz import Quiz, QuizQuestion, QuizChoice, QuizAttempt
+from app.models.quiz import Quiz, QuizQuestion, QuizChoice, QuizAttempt, QuizAnswer
 from app.models.material_file import MaterialFile
 from app.services.auth_service import get_current_user_from_cookie, get_password_hash
 from app.services.material_service import extract_youtube_id
@@ -51,6 +51,9 @@ async def _save_files(files: List[UploadFile], mat_id: int, db: Session):
 router = APIRouter(prefix="/admin", tags=["admin"])
 templates = Jinja2Templates(directory="app/templates")
 
+def _pending_count(db: Session) -> int:
+    return db.query(User).filter(User.is_approved == False, User.role == "user").count()
+
 async def get_admin(request: Request, db: Session = Depends(get_db)):
     user = await get_current_user_from_cookie(request, db)
     if not user or user.role != "admin":
@@ -70,7 +73,7 @@ async def admin_dashboard(request: Request, db: Session = Depends(get_db)):
     published = db.query(Material).filter(Material.is_published == True).count()
     draft = total_materials - published
     categories = db.query(Category).order_by(Category.order).all()
-    return templates.TemplateResponse("admin/dashboard.html", {"request": request, "user": user, "total_users": total_users, "active_users": active_users, "new_users": new_users, "total_materials": total_materials, "published": published, "draft": draft, "categories": categories})
+    return templates.TemplateResponse("admin/dashboard.html", {"request": request, "user": user, "total_users": total_users, "active_users": active_users, "new_users": new_users, "total_materials": total_materials, "published": published, "draft": draft, "categories": categories, "pending_count": _pending_count(db)})
 
 @router.get("/users", response_class=HTMLResponse)
 async def admin_users(request: Request, db: Session = Depends(get_db)):
@@ -79,7 +82,7 @@ async def admin_users(request: Request, db: Session = Depends(get_db)):
         return RedirectResponse("/", status_code=302)
     users = db.query(User).order_by(User.created_at.desc()).all()
     categories = db.query(Category).order_by(Category.order).all()
-    return templates.TemplateResponse("admin/users.html", {"request": request, "user": user, "users": users, "categories": categories})
+    return templates.TemplateResponse("admin/users.html", {"request": request, "user": user, "users": users, "categories": categories, "pending_count": _pending_count(db)})
 
 @router.post("/users/{user_id}/role")
 async def change_role(user_id: int, role: str = Form(...), request: Request = None, db: Session = Depends(get_db)):
@@ -89,11 +92,35 @@ async def change_role(user_id: int, role: str = Form(...), request: Request = No
     target = db.query(User).filter(User.id == user_id).first()
     if target:
         target.role = role
+        if role == "admin":
+            target.is_approved = True
         db.commit()
     return RedirectResponse("/admin/users", status_code=302)
 
 @router.post("/users/{user_id}/delete")
 async def delete_user(user_id: int, request: Request, db: Session = Depends(get_db)):
+    admin = await get_current_user_from_cookie(request, db)
+    if not admin or admin.role != "admin":
+        return RedirectResponse("/", status_code=302)
+    target = db.query(User).filter(User.id == user_id).first()
+    if target and target.id != admin.id:
+        db.delete(target)
+        db.commit()
+    return RedirectResponse("/admin/users", status_code=302)
+
+@router.post("/users/{user_id}/approve")
+async def approve_user(user_id: int, request: Request, db: Session = Depends(get_db)):
+    admin = await get_current_user_from_cookie(request, db)
+    if not admin or admin.role != "admin":
+        return RedirectResponse("/", status_code=302)
+    target = db.query(User).filter(User.id == user_id).first()
+    if target:
+        target.is_approved = True
+        db.commit()
+    return RedirectResponse("/admin/users", status_code=302)
+
+@router.post("/users/{user_id}/reject")
+async def reject_user(user_id: int, request: Request, db: Session = Depends(get_db)):
     admin = await get_current_user_from_cookie(request, db)
     if not admin or admin.role != "admin":
         return RedirectResponse("/", status_code=302)
@@ -109,7 +136,7 @@ async def admin_categories(request: Request, db: Session = Depends(get_db)):
     if not user or user.role != "admin":
         return RedirectResponse("/", status_code=302)
     categories = db.query(Category).order_by(Category.order).all()
-    return templates.TemplateResponse("admin/categories.html", {"request": request, "user": user, "categories": categories})
+    return templates.TemplateResponse("admin/categories.html", {"request": request, "user": user, "categories": categories, "pending_count": _pending_count(db)})
 
 @router.post("/categories/add")
 async def add_category(request: Request, name: str = Form(...), description: str = Form(""), icon: str = Form(""), order: int = Form(0), db: Session = Depends(get_db)):
@@ -159,7 +186,7 @@ async def admin_materials(request: Request, db: Session = Depends(get_db)):
     materials = db.query(Material).order_by(Material.id.desc()).all()
     categories = db.query(Category).order_by(Category.order).all()
     subcategories = db.query(SubCategory).all()
-    return templates.TemplateResponse("admin/materials.html", {"request": request, "user": user, "materials": materials, "categories": categories, "subcategories": subcategories})
+    return templates.TemplateResponse("admin/materials.html", {"request": request, "user": user, "materials": materials, "categories": categories, "subcategories": subcategories, "pending_count": _pending_count(db)})
 
 @router.post("/materials/quick-category")
 async def quick_add_category(request: Request, name: str = Form(...), icon: str = Form(""), db: Session = Depends(get_db)):
@@ -269,11 +296,11 @@ async def edit_material_page(mat_id: int, request: Request, db: Session = Depend
     return templates.TemplateResponse("admin/edit_material.html", {
         "request": request, "user": user, "mat": mat,
         "categories": categories, "subcategories": subcategories,
-        "mat_files": mat_files,
+        "mat_files": mat_files, "pending_count": _pending_count(db),
     })
 
 @router.post("/materials/{mat_id}/edit")
-async def edit_material(mat_id: int, request: Request, title: str = Form(...), description: str = Form(""), youtube_url: str = Form(""), tags: str = Form(""), order: int = Form(0), subcategory_id: int = Form(...), db: Session = Depends(get_db)):
+async def edit_material(mat_id: int, request: Request, title: str = Form(...), description: str = Form(""), youtube_url: str = Form(""), tags: str = Form(""), order: int = Form(0), subcategory_id: int = Form(...), publish_now: str = Form(""), db: Session = Depends(get_db)):
     admin = await get_current_user_from_cookie(request, db)
     if not admin or admin.role != "admin":
         return RedirectResponse("/", status_code=302)
@@ -286,6 +313,7 @@ async def edit_material(mat_id: int, request: Request, title: str = Form(...), d
         mat.tags = tags or None
         mat.order = order
         mat.subcategory_id = subcategory_id
+        mat.is_published = (publish_now == "on")
         db.commit()
     return RedirectResponse("/admin/materials", status_code=302)
 
@@ -325,6 +353,7 @@ async def admin_comments(request: Request, db: Session = Depends(get_db)):
     return templates.TemplateResponse("admin/comments.html", {
         "request": request, "user": admin,
         "threads": threads, "categories": categories, "total_unread": total_unread,
+        "pending_count": _pending_count(db),
     })
 
 @router.get("/comments/{user_id}/{material_id}", response_class=HTMLResponse)
@@ -350,6 +379,7 @@ async def admin_view_thread(user_id: int, material_id: int, request: Request, db
         "request": request, "user": admin,
         "student": student, "material": material,
         "comments": comments, "categories": categories,
+        "pending_count": _pending_count(db),
     })
 
 @router.post("/comments/{user_id}/{material_id}/reply")
@@ -398,6 +428,7 @@ async def admin_quiz_page(mat_id: int, request: Request, db: Session = Depends(g
     return templates.TemplateResponse("admin/quiz.html", {
         "request": request, "user": admin,
         "material": material, "quiz": quiz, "categories": categories,
+        "pending_count": _pending_count(db),
     })
 
 
@@ -461,6 +492,7 @@ async def delete_quiz_question(q_id: int, request: Request, db: Session = Depend
     q = db.query(QuizQuestion).filter(QuizQuestion.id == q_id).first()
     if q:
         mat_id = q.quiz.material_id
+        db.query(QuizAnswer).filter(QuizAnswer.question_id == q.id).delete()
         db.delete(q)
         db.commit()
         return RedirectResponse(f"/admin/materials/{mat_id}/quiz", status_code=302)

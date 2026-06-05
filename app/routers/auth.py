@@ -29,7 +29,10 @@ async def login(request: Request, email: str = Form(...), password: str = Form(.
     user.last_login = datetime.utcnow()
     db.commit()
     token = create_access_token({"sub": user.email})
-    response = RedirectResponse("/", status_code=302)
+    if not user.is_approved:
+        response = RedirectResponse("/auth/pending", status_code=302)
+    else:
+        response = RedirectResponse("/", status_code=302)
     response.set_cookie("access_token", token, httponly=True, max_age=86400*30)
     return response
 
@@ -62,7 +65,7 @@ async def register(
     db.add(user)
     db.commit()
     token = create_access_token({"sub": user.email})
-    response = RedirectResponse("/", status_code=302)
+    response = RedirectResponse("/auth/pending", status_code=302)
     response.set_cookie("access_token", token, httponly=True, max_age=86400*30)
     return response
 
@@ -71,6 +74,15 @@ async def logout():
     response = RedirectResponse("/auth/login", status_code=302)
     response.delete_cookie("access_token")
     return response
+
+@router.get("/pending", response_class=HTMLResponse)
+async def pending_page(request: Request, db: Session = Depends(get_db)):
+    user = await get_current_user_from_cookie(request, db)
+    if not user:
+        return RedirectResponse("/auth/login", status_code=302)
+    if user.is_approved:
+        return RedirectResponse("/", status_code=302)
+    return templates.TemplateResponse("auth/pending.html", {"request": request, "user": user})
 
 @router.get("/forgot-password", response_class=HTMLResponse)
 async def forgot_password_page(request: Request):

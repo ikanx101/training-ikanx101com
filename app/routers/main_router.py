@@ -36,6 +36,8 @@ async def search(request: Request, q: str = Query(""), db: Session = Depends(get
     user = await get_current_user_from_cookie(request, db)
     if not user:
         return RedirectResponse("/auth/login", status_code=302)
+    if not user.is_approved:
+        return RedirectResponse("/auth/pending", status_code=302)
     results = search_materials(db, q) if q else []
     categories = db.query(Category).order_by(Category.order).all()
     return templates.TemplateResponse("search.html", {"request": request, "user": user, "results": results, "query": q, "categories": categories})
@@ -45,6 +47,8 @@ async def category_page(category_id: int, request: Request, db: Session = Depend
     user = await get_current_user_from_cookie(request, db)
     if not user:
         return RedirectResponse("/auth/login", status_code=302)
+    if not user.is_approved:
+        return RedirectResponse("/auth/pending", status_code=302)
     category = db.query(Category).filter(Category.id == category_id).first()
     if not category:
         return RedirectResponse("/")
@@ -56,6 +60,8 @@ async def subcategory_page(sub_id: int, request: Request, db: Session = Depends(
     user = await get_current_user_from_cookie(request, db)
     if not user:
         return RedirectResponse("/auth/login", status_code=302)
+    if not user.is_approved:
+        return RedirectResponse("/auth/pending", status_code=302)
     sub = db.query(SubCategory).filter(SubCategory.id == sub_id).first()
     if not sub:
         return RedirectResponse("/")
@@ -74,6 +80,8 @@ async def material_page(material_id: int, request: Request, db: Session = Depend
     user = await get_current_user_from_cookie(request, db)
     if not user:
         return RedirectResponse("/auth/login", status_code=302)
+    if not user.is_approved:
+        return RedirectResponse("/auth/pending", status_code=302)
     material = db.query(Material).filter(Material.id == material_id, Material.is_published == True).first()
     if not material:
         return RedirectResponse("/")
@@ -138,6 +146,8 @@ async def post_comment(material_id: int, request: Request, content: str = Form(.
     user = await get_current_user_from_cookie(request, db)
     if not user:
         return RedirectResponse("/auth/login", status_code=302)
+    if not user.is_approved:
+        return RedirectResponse("/auth/pending", status_code=302)
     if content.strip():
         db.add(Comment(
             material_id=material_id,
@@ -155,6 +165,8 @@ async def submit_quiz(material_id: int, request: Request, db: Session = Depends(
     user = await get_current_user_from_cookie(request, db)
     if not user:
         return RedirectResponse("/auth/login", status_code=302)
+    if not user.is_approved:
+        return RedirectResponse("/auth/pending", status_code=302)
     quiz = db.query(Quiz).filter(Quiz.material_id == material_id, Quiz.is_active == True).first()
     if not quiz or not quiz.questions:
         return RedirectResponse(f"/material/{material_id}", status_code=302)
@@ -197,6 +209,8 @@ async def mark_complete(material_id: int, request: Request, db: Session = Depend
     user = await get_current_user_from_cookie(request, db)
     if not user:
         return RedirectResponse("/auth/login", status_code=302)
+    if not user.is_approved:
+        return RedirectResponse("/auth/pending", status_code=302)
     from datetime import datetime
     progress = db.query(UserProgress).filter_by(user_id=user.id, material_id=material_id).first()
     if not progress:
@@ -212,6 +226,8 @@ async def toggle_bookmark(material_id: int, request: Request, db: Session = Depe
     user = await get_current_user_from_cookie(request, db)
     if not user:
         return RedirectResponse("/auth/login", status_code=302)
+    if not user.is_approved:
+        return RedirectResponse("/auth/pending", status_code=302)
     bm = db.query(Bookmark).filter_by(user_id=user.id, material_id=material_id).first()
     if bm:
         db.delete(bm)
@@ -225,6 +241,8 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
     user = await get_current_user_from_cookie(request, db)
     if not user:
         return RedirectResponse("/auth/login", status_code=302)
+    if not user.is_approved:
+        return RedirectResponse("/auth/pending", status_code=302)
     bookmarks = db.query(Bookmark).filter_by(user_id=user.id).order_by(Bookmark.created_at.desc()).all()
     recent = db.query(UserProgress).filter_by(user_id=user.id).order_by(UserProgress.last_watched.desc()).limit(10).all()
     completed_count = db.query(UserProgress).filter_by(user_id=user.id, is_completed=True).count()
@@ -236,6 +254,8 @@ async def profile_page(request: Request, db: Session = Depends(get_db)):
     user = await get_current_user_from_cookie(request, db)
     if not user:
         return RedirectResponse("/auth/login", status_code=302)
+    if not user.is_approved:
+        return RedirectResponse("/auth/pending", status_code=302)
     categories = db.query(Category).order_by(Category.order).all()
     return templates.TemplateResponse("profile.html", {"request": request, "user": user, "categories": categories, "success": None, "error": None})
 
@@ -244,6 +264,8 @@ async def update_profile(request: Request, full_name: str = Form(...), bio: str 
     user = await get_current_user_from_cookie(request, db)
     if not user:
         return RedirectResponse("/auth/login", status_code=302)
+    if not user.is_approved:
+        return RedirectResponse("/auth/pending", status_code=302)
     user.full_name = full_name
     user.bio = bio or None
     db.commit()

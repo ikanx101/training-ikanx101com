@@ -79,7 +79,17 @@
         <input type="text" name="tags" value="{{ mat.tags or '' }}"
                class="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"/>
       </div>
-      <div class="flex gap-3 pt-2">
+      <div class="flex items-center gap-3 pt-2 border-t border-gray-100 pt-4">
+        <label class="flex items-center gap-2 cursor-pointer select-none">
+          <input type="checkbox" name="publish_now" value="on" {% if mat.is_published %}checked{% endif %}
+                 class="w-4 h-4 rounded text-blue-600"/>
+          <span class="text-sm font-medium text-gray-700">Terbitkan materi</span>
+        </label>
+        <span class="text-xs {% if mat.is_published %}text-green-600 bg-green-50{% else %}text-gray-400 bg-gray-100{% endif %} px-2 py-0.5 rounded-full">
+          {% if mat.is_published %}Aktif{% else %}Draft{% endif %}
+        </span>
+      </div>
+      <div class="flex gap-3">
         <button type="submit"
                 class="bg-blue-600 text-white px-8 py-2.5 rounded-lg font-semibold hover:bg-blue-700 transition">
           <i class="fas fa-save mr-2"></i>Simpan

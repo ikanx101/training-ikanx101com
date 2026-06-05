@@ -1,0 +1,418 @@
+{% extends "base.html" %}
+{% block title %}Study Data with ikanx101.com — Belajar Data Science{% endblock %}
+{% block content %}
+
+{% if user %}
+{# ===== TAMPILAN USER YANG SUDAH LOGIN ===== #}
+<div class="space-y-8">
+  <!-- Hero singkat -->
+  <div class="bg-gradient-to-r from-blue-700 to-blue-900 rounded-2xl p-8 text-white">
+    <h1 class="text-2xl font-bold mb-1">Selamat datang, {{ user.full_name.split()[0] }}! 👋</h1>
+    <p class="text-blue-200 mb-4">Lanjutkan perjalanan belajar data science kamu.</p>
+    <a href="/dashboard" class="bg-yellow-400 text-blue-900 px-6 py-2.5 rounded-lg font-semibold hover:bg-yellow-300 transition inline-block">
+      <i class="fas fa-tachometer-alt mr-2"></i>Lihat Dashboard
+    </a>
+  </div>
+
+  <!-- Categories -->
+  <div>
+    <h2 class="text-xl font-bold text-gray-800 mb-4">Kategori Materi</h2>
+    {% if categories %}
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+      {% for cat in categories %}
+      <a href="/category/{{ cat.id }}" class="bg-white rounded-xl shadow-sm p-4 flex flex-col items-center gap-2 hover:shadow-md hover:-translate-y-0.5 transition text-center">
+        <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+          <i class="{{ cat.icon or 'fas fa-folder' }} text-blue-600 text-xl"></i>
+        </div>
+        <span class="font-medium text-gray-800 text-sm">{{ cat.name }}</span>
+        <span class="text-xs text-gray-400">{{ cat.subcategories|length }} sub-kategori</span>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="bg-white rounded-xl p-8 text-center text-gray-400">
+      <i class="fas fa-folder-open text-4xl mb-3 block"></i>
+      <p>Belum ada kategori. Admin perlu menambahkan kategori terlebih dahulu.</p>
+      {% if user.role == 'admin' %}
+      <a href="/admin/categories" class="mt-3 inline-block text-blue-600 hover:underline text-sm">+ Tambah Kategori</a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Featured Materials -->
+  {% if featured %}
+  <div>
+    <h2 class="text-xl font-bold text-gray-800 mb-4">Materi Terbaru</h2>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {% for mat in featured %}
+      <a href="/material/{{ mat.id }}" class="bg-white rounded-xl shadow-sm hover:shadow-md transition overflow-hidden group">
+        {% if mat.youtube_embed_id %}
+        <div class="relative bg-gray-800 aspect-video">
+          <img src="https://img.youtube.com/vi/{{ mat.youtube_embed_id }}/mqdefault.jpg" alt="{{ mat.title }}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition"/>
+          <div class="absolute inset-0 flex items-center justify-center">
+            <div class="w-12 h-12 bg-red-600 rounded-full flex items-center justify-center shadow-lg">
+              <i class="fas fa-play text-white ml-1"></i>
+            </div>
+          </div>
+        </div>
+        {% else %}
+        <div class="aspect-video bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center">
+          <i class="fas fa-play-circle text-5xl text-blue-400"></i>
+        </div>
+        {% endif %}
+        <div class="p-4">
+          <h3 class="font-semibold text-gray-800 text-sm line-clamp-2 mb-1">{{ mat.title }}</h3>
+          <p class="text-xs text-gray-500">{{ mat.subcategory.name }}</p>
+          {% if mat.tags %}
+          <div class="flex flex-wrap gap-1 mt-2">
+            {% for tag in mat.tags.split(',')[:3] %}
+            <span class="text-xs bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full">{{ tag.strip() }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% else %}
+{# ===== LANDING PAGE UNTUK PENGUNJUNG BELUM LOGIN ===== #}
+<div class="space-y-16 -mt-2">
+
+  <!-- ===== HERO ===== -->
+  <div class="relative bg-gradient-to-br from-blue-800 via-blue-700 to-indigo-800 rounded-2xl overflow-hidden px-8 py-14 text-white text-center shadow-xl">
+    <!-- Background decoration -->
+    <div class="absolute inset-0 opacity-10">
+      <div class="absolute top-4 left-8 text-6xl">📊</div>
+      <div class="absolute top-8 right-12 text-5xl">🤖</div>
+      <div class="absolute bottom-6 left-16 text-4xl">📈</div>
+      <div class="absolute bottom-4 right-8 text-5xl">🧮</div>
+      <div class="absolute top-1/2 left-4 text-3xl">🔬</div>
+      <div class="absolute top-1/2 right-4 text-3xl">💡</div>
+    </div>
+    <div class="relative">
+      <div class="inline-flex items-center gap-2 bg-yellow-400 text-blue-900 px-4 py-1.5 rounded-full text-sm font-semibold mb-6">
+        <i class="fas fa-star"></i> Platform Belajar Data Science #1
+      </div>
+      <h1 class="text-4xl md:text-5xl font-extrabold mb-4 leading-tight">
+        Kuasai <span class="text-yellow-300">Data Science</span><br/>dari Nol hingga Mahir
+      </h1>
+      <p class="text-blue-200 text-lg mb-8 max-w-xl mx-auto">
+        Pelajari R, Python, Machine Learning, dan Statistik lewat video terstruktur bersama ikanx101.com. Gratis dan privat.
+      </p>
+      <div class="flex flex-col sm:flex-row gap-3 justify-center">
+        <a href="/auth/register" class="bg-yellow-400 text-blue-900 px-8 py-3 rounded-xl font-bold text-base hover:bg-yellow-300 transition shadow-lg">
+          <i class="fas fa-rocket mr-2"></i>Mulai Belajar Gratis
+        </a>
+        <a href="/auth/login" class="border-2 border-blue-400 text-white px-8 py-3 rounded-xl font-semibold text-base hover:bg-blue-700 transition">
+          <i class="fas fa-sign-in-alt mr-2"></i>Sudah Punya Akun
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== STATS ===== -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div class="bg-white rounded-xl shadow-sm p-5 text-center border border-gray-100">
+      <div class="text-3xl font-extrabold text-blue-600">{{ stats.total_materials }}</div>
+      <div class="text-sm text-gray-500 mt-1">Video Materi</div>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-5 text-center border border-gray-100">
+      <div class="text-3xl font-extrabold text-green-600">{{ stats.total_categories }}</div>
+      <div class="text-sm text-gray-500 mt-1">Topik Bahasan</div>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-5 text-center border border-gray-100">
+      <div class="text-3xl font-extrabold text-purple-600">100%</div>
+      <div class="text-sm text-gray-500 mt-1">Akses Gratis</div>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-5 text-center border border-gray-100">
+      <div class="text-3xl font-extrabold text-orange-500">1:1</div>
+      <div class="text-sm text-gray-500 mt-1">Tanya Langsung Admin</div>
+    </div>
+  </div>
+
+  <!-- ===== CAROUSEL TOPIK ===== -->
+  <div>
+    <div class="text-center mb-8">
+      <h2 class="text-2xl font-bold text-gray-800">Apa yang Akan Kamu Pelajari?</h2>
+      <p class="text-gray-500 mt-2">Topik-topik data science yang terstruktur dan praktis</p>
+    </div>
+
+    <div x-data="carousel()" class="relative">
+      <!-- Slides -->
+      <div class="overflow-hidden rounded-2xl">
+        <div class="flex transition-transform duration-500 ease-in-out"
+             :style="`transform: translateX(-${current * 100}%)`">
+
+          <!-- Slide 1: R Programming -->
+          <div class="min-w-full">
+            <div class="bg-gradient-to-br from-blue-600 to-blue-800 rounded-2xl p-8 md:p-12 text-white grid md:grid-cols-2 gap-8 items-center">
+              <div>
+                <div class="inline-block bg-blue-500 bg-opacity-50 px-3 py-1 rounded-full text-sm font-medium mb-4">
+                  <i class="fas fa-code mr-1"></i> Programming
+                </div>
+                <h3 class="text-2xl md:text-3xl font-bold mb-3">Pemrograman dengan R</h3>
+                <p class="text-blue-200 mb-5">Mulai dari dasar sintaks R hingga manipulasi data tingkat lanjut. Pelajari dplyr, ggplot2, dan ekosistem tidyverse untuk analisis data modern.</p>
+                <div class="flex flex-wrap gap-2">
+                  <span class="bg-blue-500 bg-opacity-40 px-3 py-1 rounded-full text-sm">Syntax Dasar</span>
+                  <span class="bg-blue-500 bg-opacity-40 px-3 py-1 rounded-full text-sm">dplyr</span>
+                  <span class="bg-blue-500 bg-opacity-40 px-3 py-1 rounded-full text-sm">ggplot2</span>
+                  <span class="bg-blue-500 bg-opacity-40 px-3 py-1 rounded-full text-sm">tidyr</span>
+                </div>
+              </div>
+              <div class="hidden md:flex items-center justify-center">
+                <div class="bg-blue-900 bg-opacity-50 rounded-2xl p-6 font-mono text-sm text-blue-200 w-full max-w-xs">
+                  <div class="text-blue-400 mb-2"># Analisis data dengan R</div>
+                  <div>df <span class="text-yellow-300">%&gt;%</span></div>
+                  <div class="ml-4">filter(nilai <span class="text-yellow-300">&gt;</span> 80) <span class="text-yellow-300">%&gt;%</span></div>
+                  <div class="ml-4">group_by(kelas) <span class="text-yellow-300">%&gt;%</span></div>
+                  <div class="ml-4">summarise(</div>
+                  <div class="ml-8">rata <span class="text-yellow-300">=</span> mean(nilai)</div>
+                  <div class="ml-4">)</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Slide 2: Statistik -->
+          <div class="min-w-full">
+            <div class="bg-gradient-to-br from-green-600 to-teal-700 rounded-2xl p-8 md:p-12 text-white grid md:grid-cols-2 gap-8 items-center">
+              <div>
+                <div class="inline-block bg-green-500 bg-opacity-50 px-3 py-1 rounded-full text-sm font-medium mb-4">
+                  <i class="fas fa-chart-bar mr-1"></i> Statistik
+                </div>
+                <h3 class="text-2xl md:text-3xl font-bold mb-3">Statistik & Probabilitas</h3>
+                <p class="text-green-200 mb-5">Bangun fondasi statistik yang kuat. Dari distribusi data, uji hipotesis, hingga regresi — semua dijelaskan dengan contoh nyata dan visualisasi.</p>
+                <div class="flex flex-wrap gap-2">
+                  <span class="bg-green-500 bg-opacity-40 px-3 py-1 rounded-full text-sm">Distribusi</span>
+                  <span class="bg-green-500 bg-opacity-40 px-3 py-1 rounded-full text-sm">Uji Hipotesis</span>
+                  <span class="bg-green-500 bg-opacity-40 px-3 py-1 rounded-full text-sm">Regresi</span>
+                  <span class="bg-green-500 bg-opacity-40 px-3 py-1 rounded-full text-sm">Korelasi</span>
+                </div>
+              </div>
+              <div class="hidden md:flex items-center justify-center">
+                <div class="bg-green-900 bg-opacity-40 rounded-2xl p-6 w-full max-w-xs">
+                  <div class="space-y-3">
+                    <div>
+                      <div class="text-xs text-green-300 mb-1">Distribusi Normal</div>
+                      <div class="flex items-end gap-0.5 h-16">
+                        <div class="bg-green-400 bg-opacity-60 flex-1 rounded-t" style="height:15%"></div>
+                        <div class="bg-green-400 bg-opacity-70 flex-1 rounded-t" style="height:35%"></div>
+                        <div class="bg-green-400 bg-opacity-80 flex-1 rounded-t" style="height:65%"></div>
+                        <div class="bg-green-300 flex-1 rounded-t" style="height:100%"></div>
+                        <div class="bg-green-400 bg-opacity-80 flex-1 rounded-t" style="height:65%"></div>
+                        <div class="bg-green-400 bg-opacity-70 flex-1 rounded-t" style="height:35%"></div>
+                        <div class="bg-green-400 bg-opacity-60 flex-1 rounded-t" style="height:15%"></div>
+                      </div>
+                    </div>
+                    <div class="text-center text-green-300 text-xs">μ ± σ • p-value • CI 95%</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Slide 3: Machine Learning -->
+          <div class="min-w-full">
+            <div class="bg-gradient-to-br from-purple-700 to-indigo-800 rounded-2xl p-8 md:p-12 text-white grid md:grid-cols-2 gap-8 items-center">
+              <div>
+                <div class="inline-block bg-purple-500 bg-opacity-50 px-3 py-1 rounded-full text-sm font-medium mb-4">
+                  <i class="fas fa-robot mr-1"></i> Machine Learning
+                </div>
+                <h3 class="text-2xl md:text-3xl font-bold mb-3">Machine Learning Praktis</h3>
+                <p class="text-purple-200 mb-5">Dari konsep supervised & unsupervised learning hingga implementasi model nyata. Pelajari cara membangun prediksi berbasis data dari awal.</p>
+                <div class="flex flex-wrap gap-2">
+                  <span class="bg-purple-500 bg-opacity-40 px-3 py-1 rounded-full text-sm">Klasifikasi</span>
+                  <span class="bg-purple-500 bg-opacity-40 px-3 py-1 rounded-full text-sm">Clustering</span>
+                  <span class="bg-purple-500 bg-opacity-40 px-3 py-1 rounded-full text-sm">Decision Tree</span>
+                  <span class="bg-purple-500 bg-opacity-40 px-3 py-1 rounded-full text-sm">Evaluasi Model</span>
+                </div>
+              </div>
+              <div class="hidden md:flex items-center justify-center">
+                <div class="relative w-48 h-48">
+                  <!-- Nodes -->
+                  <div class="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-10 bg-purple-400 rounded-full flex items-center justify-center text-xs font-bold shadow-lg">Input</div>
+                  <div class="absolute top-14 left-6 w-10 h-10 bg-indigo-400 rounded-full flex items-center justify-center text-xs font-bold shadow-lg">H1</div>
+                  <div class="absolute top-14 right-6 w-10 h-10 bg-indigo-400 rounded-full flex items-center justify-center text-xs font-bold shadow-lg">H2</div>
+                  <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-10 h-10 bg-yellow-400 text-blue-900 rounded-full flex items-center justify-center text-xs font-bold shadow-lg">Output</div>
+                  <!-- Lines -->
+                  <svg class="absolute inset-0 w-full h-full" xmlns="http://www.w3.org/2000/svg">
+                    <line x1="50%" y1="10" x2="25%" y2="56" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+                    <line x1="50%" y1="10" x2="75%" y2="56" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+                    <line x1="25%" y1="70" x2="50%" y2="138" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+                    <line x1="75%" y1="70" x2="50%" y2="138" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Slide 4: Visualisasi Data -->
+          <div class="min-w-full">
+            <div class="bg-gradient-to-br from-orange-600 to-red-700 rounded-2xl p-8 md:p-12 text-white grid md:grid-cols-2 gap-8 items-center">
+              <div>
+                <div class="inline-block bg-orange-500 bg-opacity-50 px-3 py-1 rounded-full text-sm font-medium mb-4">
+                  <i class="fas fa-chart-pie mr-1"></i> Visualisasi
+                </div>
+                <h3 class="text-2xl md:text-3xl font-bold mb-3">Visualisasi Data yang Menarik</h3>
+                <p class="text-orange-200 mb-5">Ubah data mentah menjadi insight visual yang menarik dan mudah dipahami. Kuasai ggplot2, plotly, dan teknik storytelling dengan data.</p>
+                <div class="flex flex-wrap gap-2">
+                  <span class="bg-orange-500 bg-opacity-40 px-3 py-1 rounded-full text-sm">ggplot2</span>
+                  <span class="bg-orange-500 bg-opacity-40 px-3 py-1 rounded-full text-sm">plotly</span>
+                  <span class="bg-orange-500 bg-opacity-40 px-3 py-1 rounded-full text-sm">Dashboard</span>
+                  <span class="bg-orange-500 bg-opacity-40 px-3 py-1 rounded-full text-sm">Infografis</span>
+                </div>
+              </div>
+              <div class="hidden md:flex items-center justify-center">
+                <div class="bg-orange-900 bg-opacity-40 rounded-2xl p-6 w-full max-w-xs">
+                  <div class="text-xs text-orange-300 mb-3">Penjualan per Kuartal</div>
+                  <div class="space-y-2">
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs text-orange-200 w-4">Q1</span>
+                      <div class="flex-1 bg-orange-900 rounded-full h-4 overflow-hidden">
+                        <div class="bg-orange-400 h-full rounded-full" style="width:65%"></div>
+                      </div>
+                      <span class="text-xs text-orange-200">65%</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs text-orange-200 w-4">Q2</span>
+                      <div class="flex-1 bg-orange-900 rounded-full h-4 overflow-hidden">
+                        <div class="bg-yellow-400 h-full rounded-full" style="width:82%"></div>
+                      </div>
+                      <span class="text-xs text-orange-200">82%</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs text-orange-200 w-4">Q3</span>
+                      <div class="flex-1 bg-orange-900 rounded-full h-4 overflow-hidden">
+                        <div class="bg-red-400 h-full rounded-full" style="width:48%"></div>
+                      </div>
+                      <span class="text-xs text-orange-200">48%</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="text-xs text-orange-200 w-4">Q4</span>
+                      <div class="flex-1 bg-orange-900 rounded-full h-4 overflow-hidden">
+                        <div class="bg-orange-300 h-full rounded-full" style="width:91%"></div>
+                      </div>
+                      <span class="text-xs text-orange-200">91%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Arrows -->
+      <button @click="prev()" class="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 bg-white shadow-lg rounded-full w-10 h-10 flex items-center justify-center text-gray-600 hover:text-blue-600 transition z-10">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <button @click="next()" class="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 bg-white shadow-lg rounded-full w-10 h-10 flex items-center justify-center text-gray-600 hover:text-blue-600 transition z-10">
+        <i class="fas fa-chevron-right"></i>
+      </button>
+
+      <!-- Dots -->
+      <div class="flex justify-center gap-2 mt-4">
+        <template x-for="i in total" :key="i">
+          <button @click="current = i - 1"
+                  :class="current === i - 1 ? 'bg-blue-600 w-6' : 'bg-gray-300 w-2'"
+                  class="h-2 rounded-full transition-all duration-300"></button>
+        </template>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== FITUR UNGGULAN ===== -->
+  <div>
+    <div class="text-center mb-8">
+      <h2 class="text-2xl font-bold text-gray-800">Kenapa Belajar di Sini?</h2>
+      <p class="text-gray-500 mt-2">Platform yang dirancang agar belajar data science jadi mudah dan menyenangkan</p>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition">
+        <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4">
+          <i class="fas fa-video text-blue-600 text-xl"></i>
+        </div>
+        <h3 class="font-bold text-gray-800 mb-2">Materi Video Terstruktur</h3>
+        <p class="text-gray-500 text-sm">Belajar lewat video YouTube yang dikurasi dan disusun secara berurutan dari dasar hingga mahir.</p>
+      </div>
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition">
+        <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mb-4">
+          <i class="fas fa-check-circle text-green-600 text-xl"></i>
+        </div>
+        <h3 class="font-bold text-gray-800 mb-2">Lacak Progres Belajar</h3>
+        <p class="text-gray-500 text-sm">Tandai materi yang sudah selesai dan pantau perkembangan belajarmu lewat dashboard personal.</p>
+      </div>
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition">
+        <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center mb-4">
+          <i class="fas fa-lock text-purple-600 text-xl"></i>
+        </div>
+        <h3 class="font-bold text-gray-800 mb-2">Tanya Jawab Privat</h3>
+        <p class="text-gray-500 text-sm">Kirim pertanyaan langsung ke admin untuk setiap materi. Percakapan bersifat privat hanya antara kamu dan admin.</p>
+      </div>
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition">
+        <div class="w-12 h-12 bg-yellow-100 rounded-xl flex items-center justify-center mb-4">
+          <i class="fas fa-bookmark text-yellow-600 text-xl"></i>
+        </div>
+        <h3 class="font-bold text-gray-800 mb-2">Bookmark Materi Favorit</h3>
+        <p class="text-gray-500 text-sm">Simpan materi yang ingin ditonton ulang. Akses kembali kapan saja dari dashboard-mu.</p>
+      </div>
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition">
+        <div class="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center mb-4">
+          <i class="fas fa-graduation-cap text-red-600 text-xl"></i>
+        </div>
+        <h3 class="font-bold text-gray-800 mb-2">Dari Praktisi untuk Pemula</h3>
+        <p class="text-gray-500 text-sm">Materi dibuat dan dikurasi oleh ikanx101.com — praktisi data science dengan pengalaman industri nyata.</p>
+      </div>
+      <div class="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition">
+        <div class="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center mb-4">
+          <i class="fas fa-infinity text-indigo-600 text-xl"></i>
+        </div>
+        <h3 class="font-bold text-gray-800 mb-2">Akses Seumur Hidup, Gratis</h3>
+        <p class="text-gray-500 text-sm">Daftar sekali, akses selamanya. Tidak ada biaya langganan atau batas waktu belajar.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CTA BOTTOM ===== -->
+  <div class="bg-gradient-to-r from-indigo-700 to-blue-700 rounded-2xl p-10 text-center text-white shadow-xl">
+    <h2 class="text-2xl md:text-3xl font-bold mb-3">Siap Memulai Perjalanan Data Science-mu?</h2>
+    <p class="text-indigo-200 mb-6 text-base">Daftar sekarang dan akses semua materi secara gratis.</p>
+    <div class="flex flex-col sm:flex-row gap-3 justify-center">
+      <a href="/auth/register" class="bg-yellow-400 text-blue-900 px-8 py-3 rounded-xl font-bold text-base hover:bg-yellow-300 transition shadow-lg">
+        <i class="fas fa-user-plus mr-2"></i>Daftar Gratis Sekarang
+      </a>
+      <a href="/auth/login" class="bg-white bg-opacity-10 border border-white border-opacity-40 text-white px-8 py-3 rounded-xl font-semibold text-base hover:bg-opacity-20 transition">
+        <i class="fas fa-sign-in-alt mr-2"></i>Login
+      </a>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function carousel() {
+  return {
+    current: 0,
+    total: 4,
+    timer: null,
+    init() {
+      this.timer = setInterval(() => this.next(), 5000);
+    },
+    next() {
+      this.current = (this.current + 1) % this.total;
+    },
+    prev() {
+      this.current = (this.current - 1 + this.total) % this.total;
+    },
+  }
+}
+</script>
+{% endif %}
+
+{% endblock %}

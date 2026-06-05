@@ -1,0 +1,47 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environment
+venv/
+env/
+.venv/
+ENV/
+
+# Database (jangan commit DB lokal)
+*.db
+*.sqlite
+*.sqlite3
+
+# Uploads (file user, jangan commit ke repo)
+uploads/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Server runtime files
+*.log
+.server.pid
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Folder lama (subfolder tidak perlu di-deploy)
+study-data-ikanx101/

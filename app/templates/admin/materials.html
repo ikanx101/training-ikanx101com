@@ -1,0 +1,334 @@
+{% extends "base.html" %}
+{% block title %}Kelola Materi — Admin{% endblock %}
+{% block content %}
+<div class="space-y-5" x-data="{ showForm: false, showStructure: false, tab: 'cat' }">
+
+  <div class="flex items-center justify-between">
+    <h1 class="text-2xl font-bold text-gray-800">Kelola Materi</h1>
+    <div class="flex gap-2">
+      <button @click="showStructure = !showStructure"
+              class="border border-purple-300 text-purple-700 px-4 py-2 rounded-lg text-sm hover:bg-purple-50 transition flex items-center gap-2">
+        <i class="fas fa-sitemap"></i>
+        <span x-text="showStructure ? 'Tutup Struktur' : 'Kelola Kategori'"></span>
+      </button>
+      <button @click="showForm = !showForm"
+              class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition flex items-center gap-2">
+        <i class="fas fa-plus"></i>Tambah Materi
+      </button>
+    </div>
+  </div>
+
+  <!-- ===== PANEL KELOLA KATEGORI & SUB-KATEGORI (inline) ===== -->
+  <div x-show="showStructure" x-cloak
+       class="bg-white rounded-xl shadow-sm border border-purple-100 overflow-hidden">
+    <div class="bg-purple-50 px-5 py-3 border-b border-purple-100">
+      <h2 class="font-semibold text-purple-800 text-sm">
+        <i class="fas fa-sitemap mr-2"></i>Kelola Kategori & Sub-Kategori
+      </h2>
+      <p class="text-xs text-purple-500 mt-0.5">Buat kategori dan sub-kategori sebelum menambahkan materi.</p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex border-b border-gray-100">
+      <button @click="tab = 'cat'"
+              :class="tab === 'cat' ? 'border-b-2 border-purple-600 text-purple-700 font-semibold' : 'text-gray-500 hover:text-gray-700'"
+              class="px-5 py-3 text-sm transition">
+        <i class="fas fa-folder mr-1"></i>Kategori
+      </button>
+      <button @click="tab = 'sub'"
+              :class="tab === 'sub' ? 'border-b-2 border-purple-600 text-purple-700 font-semibold' : 'text-gray-500 hover:text-gray-700'"
+              class="px-5 py-3 text-sm transition">
+        <i class="fas fa-layer-group mr-1"></i>Sub-Kategori
+      </button>
+      <button @click="tab = 'list'"
+              :class="tab === 'list' ? 'border-b-2 border-purple-600 text-purple-700 font-semibold' : 'text-gray-500 hover:text-gray-700'"
+              class="px-5 py-3 text-sm transition">
+        <i class="fas fa-list mr-1"></i>Daftar
+      </button>
+    </div>
+
+    <!-- Tab: Tambah Kategori -->
+    <div x-show="tab === 'cat'" class="p-5">
+      <form method="post" action="/admin/materials/quick-category" class="flex flex-wrap gap-3 items-end">
+        <div class="flex-1 min-w-48">
+          <label class="block text-xs font-medium text-gray-600 mb-1">Nama Kategori *</label>
+          <input type="text" name="name" required placeholder="cth: Python, SQL, Machine Learning"
+                 class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none"/>
+        </div>
+        <div class="w-52">
+          <label class="block text-xs font-medium text-gray-600 mb-1">Icon <span class="text-gray-400">(Font Awesome)</span></label>
+          <input type="text" name="icon" placeholder="fas fa-code"
+                 class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none"/>
+        </div>
+        <button type="submit"
+                class="bg-purple-600 text-white px-5 py-2 rounded-lg text-sm hover:bg-purple-700 transition whitespace-nowrap">
+          <i class="fas fa-plus mr-1"></i>Buat Kategori
+        </button>
+      </form>
+      {% if not categories %}
+      <p class="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 mt-3">
+        <i class="fas fa-exclamation-triangle mr-1"></i>Belum ada kategori. Buat kategori dulu sebelum tambah sub-kategori dan materi.
+      </p>
+      {% endif %}
+    </div>
+
+    <!-- Tab: Tambah Sub-Kategori -->
+    <div x-show="tab === 'sub'" class="p-5">
+      {% if categories %}
+      <form method="post" action="/admin/materials/quick-subcategory" class="flex flex-wrap gap-3 items-end">
+        <div class="w-52">
+          <label class="block text-xs font-medium text-gray-600 mb-1">Kategori Induk *</label>
+          <select name="category_id" required
+                  class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none bg-white">
+            <option value="">-- Pilih Kategori --</option>
+            {% for cat in categories %}
+            <option value="{{ cat.id }}">{{ cat.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="flex-1 min-w-48">
+          <label class="block text-xs font-medium text-gray-600 mb-1">Nama Sub-Kategori *</label>
+          <input type="text" name="name" required placeholder="cth: Dasar, Lanjutan, Visualisasi"
+                 class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 outline-none"/>
+        </div>
+        <button type="submit"
+                class="bg-purple-600 text-white px-5 py-2 rounded-lg text-sm hover:bg-purple-700 transition whitespace-nowrap">
+          <i class="fas fa-plus mr-1"></i>Buat Sub-Kategori
+        </button>
+      </form>
+      {% else %}
+      <div class="text-center py-6 text-gray-400">
+        <i class="fas fa-folder text-3xl mb-2 block"></i>
+        <p class="text-sm">Buat kategori dulu di tab <strong>Kategori</strong>.</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Tab: Daftar -->
+    <div x-show="tab === 'list'" class="p-5">
+      {% if categories %}
+      <div class="space-y-2">
+        {% for cat in categories %}
+        <div class="border border-gray-200 rounded-lg overflow-hidden">
+          <div class="flex items-center justify-between bg-gray-50 px-4 py-2">
+            <span class="text-sm font-medium text-gray-800">
+              <i class="{{ cat.icon or 'fas fa-folder' }} text-purple-500 mr-2"></i>{{ cat.name }}
+            </span>
+            <form method="post" action="/admin/categories/{{ cat.id }}/delete"
+                  onsubmit="return confirm('Hapus kategori {{ cat.name }}? Semua sub-kategori dan materi akan ikut terhapus.')">
+              <button type="submit" class="text-xs text-red-400 hover:text-red-600">
+                <i class="fas fa-trash"></i>
+              </button>
+            </form>
+          </div>
+          {% if cat.subcategories %}
+          <div class="divide-y divide-gray-100">
+            {% for sub in cat.subcategories %}
+            <div class="flex items-center justify-between px-6 py-2">
+              <span class="text-xs text-gray-600">
+                <i class="fas fa-layer-group text-gray-400 mr-1"></i>{{ sub.name }}
+                <span class="text-gray-400">({{ sub.materials|length }} materi)</span>
+              </span>
+              <form method="post" action="/admin/subcategories/{{ sub.id }}/delete"
+                    onsubmit="return confirm('Hapus sub-kategori {{ sub.name }}?')">
+                <button type="submit" class="text-xs text-red-400 hover:text-red-600">
+                  <i class="fas fa-times"></i>
+                </button>
+              </form>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p class="px-6 py-2 text-xs text-gray-400 italic">Belum ada sub-kategori</p>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-center text-gray-400 text-sm py-4">Belum ada kategori.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ===== FORM TAMBAH MATERI ===== -->
+  <div x-show="showForm" x-cloak class="bg-white rounded-xl shadow-sm p-5">
+    <h2 class="font-semibold text-gray-800 mb-4">Tambah Materi Baru</h2>
+    {% if not categories or not categories|selectattr('subcategories')|list %}
+    <div class="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-4 text-sm text-amber-700">
+      <i class="fas fa-exclamation-triangle mr-2"></i>
+      Belum ada sub-kategori. Klik tombol <strong>"Kelola Kategori"</strong> di atas untuk membuat kategori dan sub-kategori terlebih dahulu.
+    </div>
+    {% endif %}
+    <form method="post" action="/admin/materials/add" enctype="multipart/form-data" class="grid grid-cols-2 gap-4">
+      <div class="col-span-2">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Judul *</label>
+        <input type="text" name="title" required
+               class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"/>
+      </div>
+      <div class="col-span-2">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Deskripsi</label>
+        <textarea name="description" rows="3"
+                  class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none"></textarea>
+      </div>
+      <div class="col-span-2">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Link YouTube</label>
+        <input type="url" name="youtube_url" placeholder="https://www.youtube.com/watch?v=..."
+               class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"/>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Sub-Kategori *
+          <button type="button" @click="showStructure = true; tab = 'sub'; showForm = false"
+                  class="ml-2 text-xs text-purple-600 hover:underline font-normal">
+            + Buat baru
+          </button>
+        </label>
+        <select name="subcategory_id" required
+                class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white">
+          <option value="">-- Pilih Sub-Kategori --</option>
+          {% for cat in categories %}
+          {% if cat.subcategories %}
+          <optgroup label="{{ cat.name }}">
+            {% for sub in cat.subcategories %}
+            <option value="{{ sub.id }}">{{ sub.name }}</option>
+            {% endfor %}
+          </optgroup>
+          {% endif %}
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Tags <span class="text-gray-400 font-normal">(pisah koma)</span></label>
+        <input type="text" name="tags" placeholder="python, dasar, tutorial"
+               class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"/>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">Urutan</label>
+        <input type="number" name="order" value="0"
+               class="w-full border border-gray-300 rounded-lg px-4 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"/>
+      </div>
+      <!-- Upload Files -->
+      <div class="col-span-2">
+        <label class="block text-sm font-medium text-gray-700 mb-1">
+          Upload File Data
+          <span class="text-gray-400 font-normal ml-1">(opsional, maks 10MB/file, bisa lebih dari satu)</span>
+        </label>
+        <div x-data="{ dragging: false }"
+             @dragover.prevent="dragging = true" @dragleave="dragging = false" @drop.prevent="dragging = false"
+             :class="dragging ? 'border-blue-400 bg-blue-50' : 'border-gray-300 bg-gray-50'"
+             class="border-2 border-dashed rounded-xl px-4 py-5 text-center transition">
+          <i class="fas fa-cloud-upload-alt text-3xl text-gray-300 mb-2 block"></i>
+          <p class="text-sm text-gray-500 mb-2">Drag & drop atau klik untuk memilih file</p>
+          <p class="text-xs text-gray-400 mb-3">CSV, XLSX, PDF, ZIP, R, PY, IPYNB, dan lainnya</p>
+          <input type="file" name="files" multiple
+                 accept=".csv,.xlsx,.xls,.tsv,.json,.txt,.pdf,.docx,.zip,.r,.py,.ipynb,.rmd,.png,.jpg,.jpeg"
+                 class="block mx-auto text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"/>
+        </div>
+      </div>
+
+      <div class="col-span-2 flex items-center justify-between pt-2 border-t border-gray-100">
+        <label class="flex items-center gap-3 cursor-pointer select-none">
+          <div class="relative">
+            <input type="checkbox" name="publish_now" id="publish_now" class="sr-only peer" checked/>
+            <div class="w-10 h-6 bg-gray-300 rounded-full peer-checked:bg-green-500 transition-colors"></div>
+            <div class="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-4"></div>
+          </div>
+          <span class="text-sm font-medium text-gray-700">
+            Langsung <span class="text-green-600 font-semibold">Publish</span>
+            <span class="text-gray-400 font-normal ml-1">(matikan jika ingin simpan sebagai Draft)</span>
+          </span>
+        </label>
+        <button type="submit"
+                class="bg-blue-600 text-white px-8 py-2 rounded-lg text-sm hover:bg-blue-700 transition">
+          <i class="fas fa-plus mr-2"></i>Tambah
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ===== TABEL MATERI ===== -->
+  <div class="bg-white rounded-xl shadow-sm overflow-hidden">
+    <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 text-gray-500 text-xs uppercase">
+          <tr>
+            <th class="px-4 py-3 text-left">Materi</th>
+            <th class="px-4 py-3 text-left">Sub-Kategori</th>
+            <th class="px-4 py-3 text-left">Status</th>
+            <th class="px-4 py-3 text-left">Aksi</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          {% for mat in materials %}
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-3">
+              <div class="flex items-center gap-3">
+                {% if mat.youtube_embed_id %}
+                <img src="https://img.youtube.com/vi/{{ mat.youtube_embed_id }}/default.jpg"
+                     class="w-16 h-10 rounded object-cover flex-shrink-0"/>
+                {% else %}
+                <div class="w-16 h-10 bg-gray-100 rounded flex items-center justify-center flex-shrink-0">
+                  <i class="fas fa-video text-gray-300"></i>
+                </div>
+                {% endif %}
+                <div>
+                  <p class="font-medium text-gray-800">{{ mat.title }}</p>
+                  {% if mat.tags %}
+                  <p class="text-xs text-gray-400 mt-0.5">{{ mat.tags }}</p>
+                  {% endif %}
+                </div>
+              </div>
+            </td>
+            <td class="px-4 py-3 text-gray-500">
+              <p>{{ mat.subcategory.name }}</p>
+              <p class="text-xs text-gray-400">{{ mat.subcategory.category.name }}</p>
+            </td>
+            <td class="px-4 py-3">
+              <span class="px-2 py-0.5 rounded-full text-xs
+                {% if mat.is_published %}bg-green-100 text-green-700{% else %}bg-yellow-100 text-yellow-700{% endif %}">
+                {% if mat.is_published %}Publish{% else %}Draft{% endif %}
+              </span>
+            </td>
+            <td class="px-4 py-3">
+              <div class="flex gap-2">
+                <form method="post" action="/admin/materials/{{ mat.id }}/toggle">
+                  <button type="submit" class="text-xs px-3 py-1 rounded border transition
+                    {% if mat.is_published %}border-yellow-300 text-yellow-700 hover:bg-yellow-50
+                    {% else %}border-green-300 text-green-700 hover:bg-green-50{% endif %}">
+                    {% if mat.is_published %}Draft{% else %}Publish{% endif %}
+                  </button>
+                </form>
+                <a href="/admin/materials/{{ mat.id }}/quiz"
+                   class="text-xs px-3 py-1 rounded border border-purple-300 text-purple-700 hover:bg-purple-50 transition flex items-center gap-1">
+                  <i class="fas fa-clipboard-list text-xs"></i>Quiz
+                  {% if mat.quiz and mat.quiz.questions %}
+                  <span class="bg-purple-100 text-purple-600 px-1 rounded text-xs">{{ mat.quiz.questions|length }}</span>
+                  {% endif %}
+                </a>
+                <a href="/admin/materials/{{ mat.id }}/edit"
+                   class="text-xs px-3 py-1 rounded border border-blue-300 text-blue-700 hover:bg-blue-50 transition">Edit</a>
+                <form method="post" action="/admin/materials/{{ mat.id }}/delete"
+                      onsubmit="return confirm('Hapus materi ini?')">
+                  <button type="submit"
+                          class="text-xs px-2 py-1 rounded border border-red-200 text-red-500 hover:bg-red-50 transition">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="4" class="px-4 py-10 text-center text-gray-400">
+              <i class="fas fa-video text-4xl mb-3 block"></i>
+              Belum ada materi. Klik <strong>"Tambah Materi"</strong> untuk mulai.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

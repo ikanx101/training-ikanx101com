@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Study Data{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <div class="bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl p-6 text-white">
+    <h1 class="text-xl font-bold">Halo, {{ user.full_name }}! 👋</h1>
+    <p class="text-blue-200 text-sm mt-1">Kamu telah menyelesaikan <strong class="text-yellow-300">{{ completed_count }}</strong> materi. Terus semangat belajar!</p>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Recent -->
+    <div class="bg-white rounded-xl shadow-sm p-5">
+      <h2 class="font-semibold text-gray-800 mb-4"><i class="fas fa-history text-blue-600 mr-2"></i>Riwayat Nonton</h2>
+      {% if recent %}
+      <div class="space-y-3">
+        {% for prog in recent %}
+        <a href="/material/{{ prog.material.id }}" class="flex items-center gap-3 hover:bg-gray-50 p-2 rounded-lg transition">
+          {% if prog.material.youtube_embed_id %}
+          <img src="https://img.youtube.com/vi/{{ prog.material.youtube_embed_id }}/default.jpg" class="w-14 h-10 rounded object-cover flex-shrink-0"/>
+          {% endif %}
+          <div class="flex-1 min-w-0">
+            <p class="text-sm text-gray-700 truncate">{{ prog.material.title }}</p>
+            <p class="text-xs text-gray-400">{{ prog.material.subcategory.name }}</p>
+          </div>
+          {% if prog.is_completed %}
+          <span class="text-green-500 text-xs"><i class="fas fa-check-circle"></i></span>
+          {% endif %}
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-gray-400 text-sm text-center py-6"><i class="fas fa-play-circle text-3xl block mb-2"></i>Belum ada riwayat. Mulai tonton materi!</p>
+      {% endif %}
+    </div>
+
+    <!-- Bookmarks -->
+    <div class="bg-white rounded-xl shadow-sm p-5">
+      <h2 class="font-semibold text-gray-800 mb-4"><i class="fas fa-bookmark text-yellow-500 mr-2"></i>Bookmark Saya</h2>
+      {% if bookmarks %}
+      <div class="space-y-3">
+        {% for bm in bookmarks %}
+        <a href="/material/{{ bm.material.id }}" class="flex items-center gap-3 hover:bg-gray-50 p-2 rounded-lg transition">
+          {% if bm.material.youtube_embed_id %}
+          <img src="https://img.youtube.com/vi/{{ bm.material.youtube_embed_id }}/default.jpg" class="w-14 h-10 rounded object-cover flex-shrink-0"/>
+          {% endif %}
+          <div class="flex-1 min-w-0">
+            <p class="text-sm text-gray-700 truncate">{{ bm.material.title }}</p>
+            <p class="text-xs text-gray-400">{{ bm.material.subcategory.name }}</p>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p class="text-gray-400 text-sm text-center py-6"><i class="fas fa-bookmark text-3xl block mb-2"></i>Belum ada bookmark.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

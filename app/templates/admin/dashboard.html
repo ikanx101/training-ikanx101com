@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard — Study Data{% endblock %}
+{% block content %}
+<div class="space-y-6">
+  <div class="flex items-center justify-between">
+    <h1 class="text-2xl font-bold text-gray-800">Admin Dashboard</h1>
+    <span class="text-sm text-gray-500">Selamat datang, {{ user.full_name }}</span>
+  </div>
+
+  <!-- Stats -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <div class="bg-blue-600 text-white rounded-xl p-5">
+      <p class="text-blue-200 text-sm">Total User</p>
+      <p class="text-3xl font-bold mt-1">{{ total_users }}</p>
+      <i class="fas fa-users text-blue-400 text-2xl mt-2"></i>
+    </div>
+    <div class="bg-green-600 text-white rounded-xl p-5">
+      <p class="text-green-200 text-sm">User Aktif (7 hari)</p>
+      <p class="text-3xl font-bold mt-1">{{ active_users }}</p>
+      <i class="fas fa-user-check text-green-400 text-2xl mt-2"></i>
+    </div>
+    <div class="bg-orange-500 text-white rounded-xl p-5">
+      <p class="text-orange-200 text-sm">User Baru Minggu ini</p>
+      <p class="text-3xl font-bold mt-1">{{ new_users }}</p>
+      <i class="fas fa-user-plus text-orange-300 text-2xl mt-2"></i>
+    </div>
+    <div class="bg-purple-600 text-white rounded-xl p-5">
+      <p class="text-purple-200 text-sm">Total Materi</p>
+      <p class="text-3xl font-bold mt-1">{{ total_materials }}</p>
+      <i class="fas fa-play-circle text-purple-400 text-2xl mt-2"></i>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="bg-white rounded-xl shadow-sm p-5">
+      <h2 class="font-semibold text-gray-800 mb-4">Status Materi</h2>
+      <div class="flex items-center gap-4">
+        <div class="flex-1 text-center p-4 bg-green-50 rounded-lg">
+          <p class="text-3xl font-bold text-green-600">{{ published }}</p>
+          <p class="text-sm text-green-700">Publish</p>
+        </div>
+        <div class="flex-1 text-center p-4 bg-yellow-50 rounded-lg">
+          <p class="text-3xl font-bold text-yellow-600">{{ draft }}</p>
+          <p class="text-sm text-yellow-700">Draft</p>
+        </div>
+      </div>
+    </div>
+    <div class="bg-white rounded-xl shadow-sm p-5">
+      <h2 class="font-semibold text-gray-800 mb-4">Akses Cepat</h2>
+      <div class="grid grid-cols-2 gap-3">
+        <a href="/admin/users" class="bg-blue-50 text-blue-700 rounded-lg p-3 text-sm font-medium hover:bg-blue-100 transition flex items-center gap-2"><i class="fas fa-users"></i>Kelola User</a>
+        <a href="/admin/categories" class="bg-purple-50 text-purple-700 rounded-lg p-3 text-sm font-medium hover:bg-purple-100 transition flex items-center gap-2"><i class="fas fa-tags"></i>Kategori</a>
+        <a href="/admin/materials" class="bg-green-50 text-green-700 rounded-lg p-3 text-sm font-medium hover:bg-green-100 transition flex items-center gap-2"><i class="fas fa-play-circle"></i>Materi</a>
+        <a href="/admin/comments" class="bg-indigo-50 text-indigo-700 rounded-lg p-3 text-sm font-medium hover:bg-indigo-100 transition flex items-center gap-2"><i class="fas fa-comments"></i>Komentar</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

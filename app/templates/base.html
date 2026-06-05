@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="id" class="h-full">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}Study Data with ikanx101.com{% endblock %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+  <style>
+    [x-cloak] { display: none !important; }
+    .sidebar-link.active { background-color: #dbeafe; color: #1d4ed8; font-weight: 600; }
+  </style>
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+
+<!-- Navbar -->
+<nav class="bg-blue-700 text-white shadow-lg sticky top-0 z-50">
+  <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+    <a href="/" class="flex items-center gap-2 font-bold text-xl">
+      <i class="fas fa-graduation-cap text-yellow-300"></i>
+      <span>Study Data</span>
+      <span class="text-yellow-300 text-sm font-normal hidden sm:inline">with ikanx101.com</span>
+    </a>
+    <!-- Search -->
+    <form action="/search" method="get" class="hidden md:flex items-center bg-blue-600 rounded-lg px-3 py-1 gap-2 flex-1 max-w-md mx-6">
+      <i class="fas fa-search text-blue-300"></i>
+      <input type="text" name="q" placeholder="Cari materi..." value="{{ request.query_params.get('q','') }}"
+             class="bg-transparent outline-none text-white placeholder-blue-300 flex-1 text-sm" />
+    </form>
+    <!-- Nav links -->
+    <div class="flex items-center gap-3">
+      {% if user %}
+        <a href="/dashboard" class="text-sm hover:text-yellow-300 hidden sm:block"><i class="fas fa-tachometer-alt mr-1"></i>Dashboard</a>
+        {% if user.role == 'admin' %}
+        <a href="/admin/" class="text-sm bg-yellow-400 text-blue-900 px-3 py-1 rounded-full font-semibold hover:bg-yellow-300"><i class="fas fa-cog mr-1"></i>Admin</a>
+        {% endif %}
+        <div x-data="{ open: false }" class="relative">
+          <button @click="open = !open" class="flex items-center gap-2 hover:text-yellow-300">
+            <div class="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-sm font-bold">
+              {{ user.full_name[0].upper() }}
+            </div>
+            <span class="hidden sm:block text-sm">{{ user.full_name.split()[0] }}</span>
+            <i class="fas fa-chevron-down text-xs"></i>
+          </button>
+          <div x-show="open" @click.away="open = false" x-cloak
+               class="absolute right-0 mt-2 w-48 bg-white text-gray-800 rounded-lg shadow-lg py-1 z-50">
+            <a href="/profile" class="block px-4 py-2 text-sm hover:bg-gray-100"><i class="fas fa-user mr-2 text-blue-600"></i>Profil</a>
+            <a href="/dashboard" class="block px-4 py-2 text-sm hover:bg-gray-100"><i class="fas fa-bookmark mr-2 text-blue-600"></i>Dashboard</a>
+            <hr class="my-1"/>
+            <a href="/auth/logout" class="block px-4 py-2 text-sm hover:bg-gray-100 text-red-600"><i class="fas fa-sign-out-alt mr-2"></i>Keluar</a>
+          </div>
+        </div>
+      {% else %}
+        <a href="/auth/login" class="text-sm hover:text-yellow-300">Masuk</a>
+        <a href="/auth/register" class="text-sm bg-yellow-400 text-blue-900 px-4 py-1.5 rounded-full font-semibold hover:bg-yellow-300">Daftar</a>
+      {% endif %}
+    </div>
+  </div>
+  <!-- Mobile search -->
+  <div class="md:hidden px-4 pb-3">
+    <form action="/search" method="get" class="flex items-center bg-blue-600 rounded-lg px-3 py-2 gap-2">
+      <i class="fas fa-search text-blue-300"></i>
+      <input type="text" name="q" placeholder="Cari materi..." class="bg-transparent outline-none text-white placeholder-blue-300 flex-1 text-sm" />
+    </form>
+  </div>
+</nav>
+
+<!-- Main layout -->
+<div class="flex flex-1 max-w-7xl mx-auto w-full px-4 py-6 gap-6">
+  <!-- Sidebar -->
+  <aside class="hidden lg:block w-60 flex-shrink-0">
+    <div class="bg-white rounded-xl shadow-sm p-4 sticky top-24">
+      <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Kategori</h3>
+      <nav class="space-y-1">
+        <a href="/" class="sidebar-link flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 {% if request.url.path == '/' %}active{% endif %}">
+          <i class="fas fa-home w-4"></i> Beranda
+        </a>
+        {% if categories is defined %}
+        {% for cat in categories %}
+        <a href="/category/{{ cat.id }}" class="sidebar-link flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-700 {% if '/category/'~cat.id in request.url.path %}active{% endif %}">
+          <i class="{{ cat.icon or 'fas fa-folder' }} w-4"></i> {{ cat.name }}
+        </a>
+        {% endfor %}
+        {% endif %}
+      </nav>
+      {% if user and user.role == 'admin' %}
+      <hr class="my-3"/>
+      <h3 class="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Admin</h3>
+      <nav class="space-y-1">
+        <a href="/admin/" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-700"><i class="fas fa-chart-bar w-4"></i>Dashboard</a>
+        <a href="/admin/users" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-700"><i class="fas fa-users w-4"></i>Users</a>
+        <a href="/admin/categories" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-700"><i class="fas fa-tags w-4"></i>Kategori</a>
+        <a href="/admin/materials" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-700"><i class="fas fa-play-circle w-4"></i>Materi</a>
+        <a href="/admin/comments" class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-gray-700 hover:bg-orange-50 hover:text-orange-700"><i class="fas fa-comments w-4"></i>Komentar</a>
+      </nav>
+      {% endif %}
+    </div>
+  </aside>
+
+  <!-- Content -->
+  <main class="flex-1 min-w-0">
+    {% block content %}{% endblock %}
+  </main>
+</div>
+
+<!-- Footer -->
+<footer class="bg-blue-800 text-blue-200 text-center py-4 text-sm mt-auto">
+  <p>&copy; 2024 Study Data with <a href="https://ikanx101.com" class="text-yellow-300 hover:underline">ikanx101.com</a> — Belajar Data Science dengan Menyenangkan</p>
+</footer>
+</body>
+</html>

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Hasil Pencarian: {{ query }} — Study Data{% endblock %}
+{% block content %}
+<div class="space-y-5">
+  <div class="bg-white rounded-xl shadow-sm p-5">
+    <form action="/search" method="get" class="flex gap-3">
+      <input type="text" name="q" value="{{ query }}" placeholder="Cari materi..."
+             class="flex-1 border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"/>
+      <button type="submit" class="bg-blue-600 text-white px-6 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition">
+        <i class="fas fa-search mr-2"></i>Cari
+      </button>
+    </form>
+  </div>
+  {% if query %}
+  <p class="text-gray-600 text-sm">{{ results|length }} hasil untuk "<strong>{{ query }}</strong>"</p>
+  {% endif %}
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    {% for mat in results %}
+    <a href="/material/{{ mat.id }}" class="bg-white rounded-xl shadow-sm hover:shadow-md transition overflow-hidden group">
+      {% if mat.youtube_embed_id %}
+      <div class="relative aspect-video bg-gray-800">
+        <img src="https://img.youtube.com/vi/{{ mat.youtube_embed_id }}/mqdefault.jpg" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition"/>
+        <div class="absolute inset-0 flex items-center justify-center">
+          <div class="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center"><i class="fas fa-play text-white ml-0.5"></i></div>
+        </div>
+      </div>
+      {% endif %}
+      <div class="p-4">
+        <h3 class="font-semibold text-gray-800 text-sm mb-1">{{ mat.title }}</h3>
+        <p class="text-xs text-gray-500">{{ mat.subcategory.category.name }} › {{ mat.subcategory.name }}</p>
+      </div>
+    </a>
+    {% else %}
+    {% if query %}
+    <div class="col-span-3 bg-white rounded-xl p-10 text-center text-gray-400">
+      <i class="fas fa-search text-4xl mb-3"></i>
+      <p>Tidak ada materi yang cocok dengan "{{ query }}"</p>
+    </div>
+    {% endif %}
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

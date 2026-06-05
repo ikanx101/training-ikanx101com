@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Komentar Privat — Admin{% endblock %}
+{% block content %}
+<div class="space-y-5">
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-800">Komentar & Pertanyaan Privat</h1>
+      <p class="text-sm text-gray-500 mt-1">Setiap percakapan bersifat privat antara user dan admin.</p>
+    </div>
+    {% if total_unread > 0 %}
+    <span class="bg-red-500 text-white px-3 py-1 rounded-full text-sm font-semibold">
+      {{ total_unread }} belum dibaca
+    </span>
+    {% endif %}
+  </div>
+
+  {% if threads %}
+  <div class="space-y-3">
+    {% for t in threads %}
+    <a href="/admin/comments/{{ t.user.id }}/{{ t.material.id }}"
+       class="bg-white rounded-xl shadow-sm p-4 flex items-center gap-4 hover:shadow-md transition group
+              {% if t.unread > 0 %}border-l-4 border-indigo-500{% endif %}">
+      <!-- Avatar user -->
+      <div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm flex-shrink-0">
+        {{ t.user.full_name[0].upper() }}
+      </div>
+      <!-- Info -->
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2">
+          <span class="font-semibold text-gray-800 text-sm">{{ t.user.full_name }}</span>
+          <span class="text-gray-400 text-xs">·</span>
+          <span class="text-gray-500 text-xs truncate">{{ t.user.email }}</span>
+          {% if t.unread > 0 %}
+          <span class="bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full ml-auto flex-shrink-0">
+            {{ t.unread }} baru
+          </span>
+          {% endif %}
+        </div>
+        <p class="text-xs text-indigo-600 mt-0.5 truncate">
+          <i class="fas fa-play-circle mr-1"></i>{{ t.material.title }}
+        </p>
+        {% if t.last_msg %}
+        <p class="text-xs text-gray-500 mt-1 truncate">
+          {% if t.last_msg.is_from_admin %}<span class="text-indigo-500 font-medium">Admin: </span>{% endif %}
+          {{ t.last_msg.content[:80] }}{% if t.last_msg.content|length > 80 %}…{% endif %}
+        </p>
+        {% endif %}
+      </div>
+      <!-- Meta -->
+      <div class="text-right flex-shrink-0">
+        <p class="text-xs text-gray-400">{{ t.total }} pesan</p>
+        {% if t.last_at %}
+        <p class="text-xs text-gray-400 mt-1">{{ t.last_at.strftime('%d %b %Y') }}</p>
+        {% endif %}
+        <i class="fas fa-chevron-right text-gray-300 group-hover:text-indigo-400 transition mt-2 block"></i>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="bg-white rounded-xl p-12 text-center text-gray-400">
+    <i class="fas fa-comments text-5xl mb-4 block"></i>
+    <p class="text-lg font-medium">Belum ada pertanyaan dari user.</p>
+    <p class="text-sm mt-1">Komentar privat dari user akan muncul di sini.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

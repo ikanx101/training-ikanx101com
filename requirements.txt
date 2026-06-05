@@ -1,0 +1,12 @@
+fastapi==0.115.5
+uvicorn[standard]
+starlette==0.41.3
+sqlalchemy
+alembic
+python-jose[cryptography]
+bcrypt
+python-multipart
+jinja2
+aiofiles
+python-dotenv
+psycopg2-binary

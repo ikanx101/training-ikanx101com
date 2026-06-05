@@ -1,4 +1,4 @@
-# Study Data with ikanx101.com
+# Belajar Bareng ikanx101.com
 
 Platform belajar Data Science berbasis video YouTube yang terstruktur. Dibangun dengan FastAPI + Jinja2 + Tailwind CSS.
 

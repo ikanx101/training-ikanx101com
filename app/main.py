@@ -6,7 +6,7 @@ from app.database import create_tables
 from app.models import user, category, material, progress, bookmark
 from app.routers import auth, main_router, admin
 
-app = FastAPI(title="Study Data with ikanx101.com", version="1.0.0")
+app = FastAPI(title="Belajar Bareng ikanx101.com", version="1.0.0")
 
 os.makedirs("uploads/materials", exist_ok=True)
 os.makedirs("app/static/img", exist_ok=True)
@@ -53,7 +53,7 @@ def _seed_admin():
                 email="admin@ikanx101.com",
                 hashed_password=get_password_hash("admin123"),
                 full_name="Ikang Fadhli",
-                bio="Admin Study Data with ikanx101.com",
+                bio="Admin Belajar Bareng ikanx101.com",
                 role="admin",
                 is_approved=True,
                 security_question="Apa nama hewan peliharaan pertama kamu?",

@@ -6,3 +6,4 @@ from app.models.bookmark import Bookmark
 from app.models.comment import Comment
 from app.models.quiz import Quiz, QuizQuestion, QuizChoice, QuizAttempt, QuizAnswer
 from app.models.material_file import MaterialFile
+from app.models.user_access import UserSubcategoryAccess

@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %}Kelola Akses — {{ target.full_name }}{% endblock %}
+{% block content %}
+<div class="space-y-5 max-w-3xl">
+
+  <!-- Header -->
+  <div class="flex items-center gap-3">
+    <a href="/admin/users" class="text-gray-400 hover:text-gray-600">
+      <i class="fas fa-arrow-left"></i>
+    </a>
+    <div>
+      <h1 class="text-xl font-bold text-gray-800">Kelola Akses Materi</h1>
+      <p class="text-sm text-gray-500 mt-0.5">
+        User: <span class="font-semibold text-blue-700">{{ target.full_name }}</span>
+        <span class="text-gray-400">({{ target.email }})</span>
+      </p>
+    </div>
+  </div>
+
+  {% if request.query_params.get('saved') %}
+  <div class="bg-green-50 border border-green-200 rounded-xl px-4 py-3 text-green-700 text-sm flex items-center gap-2">
+    <i class="fas fa-check-circle"></i> Pengaturan akses berhasil disimpan.
+  </div>
+  {% endif %}
+
+  <form method="post" action="/admin/users/{{ target.id }}/access" id="access-form">
+
+    <!-- Toggle Pembatasan -->
+    <div class="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+      <label class="flex items-start gap-3 cursor-pointer">
+        <input type="checkbox" name="has_restrictions" value="on" id="toggle-restrict"
+               {% if has_restrictions %}checked{% endif %}
+               class="mt-0.5 w-4 h-4 text-blue-600 rounded" onchange="toggleRestrictions(this.checked)">
+        <div>
+          <p class="font-semibold text-gray-800">Batasi akses materi untuk user ini</p>
+          <p class="text-sm text-gray-500 mt-0.5">
+            Jika <b>tidak</b> dicentang, user dapat melihat <b>semua</b> kategori dan sub-kategori.
+            Jika dicentang, pilih sub-kategori yang boleh diakses di bawah.
+          </p>
+        </div>
+      </label>
+    </div>
+
+    <!-- Daftar Kategori & Sub-Kategori -->
+    <div id="cat-section" class="space-y-4 {% if not has_restrictions %}opacity-50 pointer-events-none{% endif %}">
+      <div class="flex items-center justify-between">
+        <h2 class="text-sm font-semibold text-gray-600 uppercase tracking-wider">Pilih Sub-Kategori yang Boleh Diakses</h2>
+        <div class="flex gap-2">
+          <button type="button" onclick="checkAll(true)"
+                  class="text-xs px-3 py-1 border border-blue-200 text-blue-600 rounded-lg hover:bg-blue-50 transition">
+            Pilih Semua
+          </button>
+          <button type="button" onclick="checkAll(false)"
+                  class="text-xs px-3 py-1 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition">
+            Hapus Semua
+          </button>
+        </div>
+      </div>
+
+      {% for cat in all_categories %}
+      <div class="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+        <!-- Category Header -->
+        <div class="bg-gray-50 px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <i class="{{ cat.icon or 'fas fa-folder' }} text-blue-500 w-4"></i>
+            <span class="font-semibold text-gray-800 text-sm">{{ cat.name }}</span>
+            <span class="text-xs text-gray-400">({{ cat.subcategories|length }} sub)</span>
+          </div>
+          <button type="button" onclick="toggleCategory({{ cat.id }})"
+                  class="text-xs text-blue-600 hover:underline">
+            Toggle semua
+          </button>
+        </div>
+
+        <!-- Sub-Kategori -->
+        {% if cat.subcategories %}
+        <div class="divide-y divide-gray-50" id="cat-{{ cat.id }}">
+          {% for sub in cat.subcategories %}
+          <label class="flex items-center gap-3 px-5 py-3 hover:bg-blue-50 cursor-pointer transition">
+            <input type="checkbox" name="subcategory_ids" value="{{ sub.id }}"
+                   class="sub-check cat-{{ cat.id }}-check w-4 h-4 text-blue-600 rounded"
+                   {% if sub.id in allowed_sub_ids %}checked{% endif %}>
+            <div class="flex-1">
+              <p class="text-sm font-medium text-gray-800">{{ sub.name }}</p>
+              {% if sub.description %}
+              <p class="text-xs text-gray-400 mt-0.5">{{ sub.description }}</p>
+              {% endif %}
+            </div>
+            <span class="text-xs text-gray-400">{{ sub.materials|length }} materi</span>
+          </label>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="px-5 py-4 text-sm text-gray-400 italic">Belum ada sub-kategori.</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+
+      {% if not all_categories %}
+      <div class="bg-white rounded-xl p-8 text-center text-gray-400">
+        <i class="fas fa-folder-open text-3xl mb-2 block"></i>
+        <p>Belum ada kategori. Tambahkan kategori terlebih dahulu.</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Save Button -->
+    <div class="flex items-center gap-3 pt-2">
+      <button type="submit" id="btn-save"
+              class="bg-blue-600 text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-blue-700 transition text-sm">
+        <i class="fas fa-save mr-2"></i>Simpan Pengaturan Akses
+      </button>
+      <a href="/admin/users" class="text-sm text-gray-500 hover:text-gray-700">Batal</a>
+      <span id="warn-empty" class="hidden text-sm text-red-600 font-medium">
+        <i class="fas fa-exclamation-triangle mr-1"></i>
+        Pilih minimal 1 sub-kategori, atau matikan pembatasan.
+      </span>
+    </div>
+
+  </form>
+</div>
+
+<script>
+function toggleRestrictions(enabled) {
+  const section = document.getElementById('cat-section');
+  if (enabled) {
+    section.classList.remove('opacity-50', 'pointer-events-none');
+  } else {
+    section.classList.add('opacity-50', 'pointer-events-none');
+  }
+  validateForm();
+}
+
+function checkAll(state) {
+  document.querySelectorAll('.sub-check').forEach(cb => cb.checked = state);
+  validateForm();
+}
+
+function toggleCategory(catId) {
+  const boxes = document.querySelectorAll('.cat-' + catId + '-check');
+  const anyUnchecked = Array.from(boxes).some(cb => !cb.checked);
+  boxes.forEach(cb => cb.checked = anyUnchecked);
+  validateForm();
+}
+
+function validateForm() {
+  const isRestricted = document.getElementById('toggle-restrict').checked;
+  const anyChecked = document.querySelectorAll('.sub-check:checked').length > 0;
+  const warn = document.getElementById('warn-empty');
+  const btn = document.getElementById('btn-save');
+  if (isRestricted && !anyChecked) {
+    warn.classList.remove('hidden');
+    btn.disabled = true;
+    btn.classList.add('opacity-50', 'cursor-not-allowed');
+  } else {
+    warn.classList.add('hidden');
+    btn.disabled = false;
+    btn.classList.remove('opacity-50', 'cursor-not-allowed');
+  }
+}
+
+// Attach change listeners to all checkboxes
+document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.sub-check').forEach(cb => {
+    cb.addEventListener('change', validateForm);
+  });
+  validateForm();
+});
+</script>
+{% endblock %}

@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
-from typing import List
+from typing import List, Optional
 import os, uuid
 from app.database import get_db
 from app.models.user import User
@@ -13,8 +13,10 @@ from app.models.progress import UserProgress
 from app.models.comment import Comment
 from app.models.quiz import Quiz, QuizQuestion, QuizChoice, QuizAttempt, QuizAnswer
 from app.models.material_file import MaterialFile
+from app.models.user_access import UserSubcategoryAccess
 from app.services.auth_service import get_current_user_from_cookie, get_password_hash
 from app.services.material_service import extract_youtube_id
+from app.services.access_service import get_allowed_sub_ids
 
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 ALLOWED_EXTENSIONS = {
@@ -497,3 +499,64 @@ async def delete_quiz_question(q_id: int, request: Request, db: Session = Depend
         db.commit()
         return RedirectResponse(f"/admin/materials/{mat_id}/quiz", status_code=302)
     return RedirectResponse("/admin/materials", status_code=302)
+
+
+# ===== KELOLA AKSES MATERI PER USER =====
+
+@router.get("/users/{user_id}/access", response_class=HTMLResponse)
+async def admin_user_access(user_id: int, request: Request, db: Session = Depends(get_db)):
+    admin = await get_current_user_from_cookie(request, db)
+    if not admin or admin.role != "admin":
+        return RedirectResponse("/", status_code=302)
+    target = db.query(User).filter(User.id == user_id).first()
+    if not target:
+        return RedirectResponse("/admin/users", status_code=302)
+    all_categories = db.query(Category).order_by(Category.order).all()
+    allowed_sub_ids = get_allowed_sub_ids(target, db)
+    has_restrictions = target.has_content_restrictions
+    categories = db.query(Category).order_by(Category.order).all()
+    return templates.TemplateResponse("admin/user_access.html", {
+        "request": request,
+        "user": admin,
+        "target": target,
+        "all_categories": all_categories,
+        "allowed_sub_ids": allowed_sub_ids or frozenset(),
+        "has_restrictions": has_restrictions,
+        "categories": categories,
+        "pending_count": _pending_count(db),
+    })
+
+
+@router.post("/users/{user_id}/access")
+async def save_user_access(
+    user_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    admin = await get_current_user_from_cookie(request, db)
+    if not admin or admin.role != "admin":
+        return RedirectResponse("/", status_code=302)
+    target = db.query(User).filter(User.id == user_id).first()
+    if not target:
+        return RedirectResponse("/admin/users", status_code=302)
+
+    form_data = await request.form()
+    restrict_on = form_data.get("has_restrictions", "") == "on"
+
+    # Update flag pada user
+    target.has_content_restrictions = restrict_on
+
+    # Hapus semua record akses lama
+    db.query(UserSubcategoryAccess).filter(UserSubcategoryAccess.user_id == user_id).delete()
+
+    if restrict_on:
+        raw_ids = form_data.getlist("subcategory_ids")
+        for raw_id in raw_ids:
+            try:
+                sub_id = int(raw_id)
+                db.add(UserSubcategoryAccess(user_id=user_id, subcategory_id=sub_id))
+            except (ValueError, Exception):
+                pass
+
+    db.commit()
+    return RedirectResponse(f"/admin/users/{user_id}/access?saved=1", status_code=302)

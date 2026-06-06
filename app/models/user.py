@@ -19,6 +19,7 @@ class User(Base):
     role = Column(String(20), default="user", nullable=False)
     is_active = Column(Boolean, default=True)
     is_approved = Column(Boolean, default=False)
+    has_content_restrictions = Column(Boolean, default=False)
     security_question = Column(String(500), nullable=True)
     security_answer_hash = Column(String(255), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

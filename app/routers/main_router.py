@@ -12,16 +12,33 @@ from app.models.quiz import Quiz, QuizAttempt, QuizAnswer, QuizChoice
 from app.models.material_file import MaterialFile
 from app.services.auth_service import get_current_user_from_cookie
 from app.services.material_service import search_materials
+from app.services.access_service import get_allowed_sub_ids, filter_categories
 
 router = APIRouter(tags=["pages"])
 templates = Jinja2Templates(directory="app/templates")
 
+
+def _get_access_context(user, db: Session):
+    """Return (allowed_sub_ids, categories) for a logged-in user."""
+    all_cats = db.query(Category).order_by(Category.order).all()
+    if user and user.role != "admin":
+        allowed = get_allowed_sub_ids(user, db)
+        cats = filter_categories(all_cats, allowed)
+    else:
+        allowed = None
+        cats = all_cats
+    return allowed, cats
+
+
 @router.get("/", response_class=HTMLResponse)
 async def home(request: Request, db: Session = Depends(get_db)):
     user = await get_current_user_from_cookie(request, db)
-    categories = db.query(Category).order_by(Category.order).all()
+    allowed_sub_ids, categories = _get_access_context(user, db)
     if user:
-        featured = db.query(Material).filter(Material.is_published == True).order_by(Material.id.desc()).limit(6).all()
+        featured_q = db.query(Material).filter(Material.is_published == True)
+        if user.role != "admin" and allowed_sub_ids is not None:
+            featured_q = featured_q.filter(Material.subcategory_id.in_(allowed_sub_ids))
+        featured = featured_q.order_by(Material.id.desc()).limit(6).all()
         stats = {}
     else:
         featured = []
@@ -29,7 +46,11 @@ async def home(request: Request, db: Session = Depends(get_db)):
             "total_materials": db.query(Material).filter(Material.is_published == True).count(),
             "total_categories": db.query(Category).count(),
         }
-    return templates.TemplateResponse("home.html", {"request": request, "user": user, "categories": categories, "featured": featured, "stats": stats})
+    return templates.TemplateResponse("home.html", {
+        "request": request, "user": user, "categories": categories,
+        "featured": featured, "stats": stats, "allowed_sub_ids": allowed_sub_ids,
+    })
+
 
 @router.get("/search", response_class=HTMLResponse)
 async def search(request: Request, q: str = Query(""), db: Session = Depends(get_db)):
@@ -38,9 +59,15 @@ async def search(request: Request, q: str = Query(""), db: Session = Depends(get
         return RedirectResponse("/auth/login", status_code=302)
     if not user.is_approved:
         return RedirectResponse("/auth/pending", status_code=302)
+    allowed_sub_ids, categories = _get_access_context(user, db)
     results = search_materials(db, q) if q else []
-    categories = db.query(Category).order_by(Category.order).all()
-    return templates.TemplateResponse("search.html", {"request": request, "user": user, "results": results, "query": q, "categories": categories})
+    if allowed_sub_ids is not None:
+        results = [m for m in results if m.subcategory_id in allowed_sub_ids]
+    return templates.TemplateResponse("search.html", {
+        "request": request, "user": user, "results": results,
+        "query": q, "categories": categories, "allowed_sub_ids": allowed_sub_ids,
+    })
+
 
 @router.get("/category/{category_id}", response_class=HTMLResponse)
 async def category_page(category_id: int, request: Request, db: Session = Depends(get_db)):
@@ -51,9 +78,15 @@ async def category_page(category_id: int, request: Request, db: Session = Depend
         return RedirectResponse("/auth/pending", status_code=302)
     category = db.query(Category).filter(Category.id == category_id).first()
     if not category:
-        return RedirectResponse("/")
-    categories = db.query(Category).order_by(Category.order).all()
-    return templates.TemplateResponse("category.html", {"request": request, "user": user, "category": category, "categories": categories})
+        return RedirectResponse("/", status_code=302)
+    allowed_sub_ids, categories = _get_access_context(user, db)
+    if allowed_sub_ids is not None and not any(s.id in allowed_sub_ids for s in category.subcategories):
+        return RedirectResponse("/", status_code=302)
+    return templates.TemplateResponse("category.html", {
+        "request": request, "user": user, "category": category,
+        "categories": categories, "allowed_sub_ids": allowed_sub_ids,
+    })
+
 
 @router.get("/subcategory/{sub_id}", response_class=HTMLResponse)
 async def subcategory_page(sub_id: int, request: Request, db: Session = Depends(get_db)):
@@ -62,18 +95,30 @@ async def subcategory_page(sub_id: int, request: Request, db: Session = Depends(
         return RedirectResponse("/auth/login", status_code=302)
     if not user.is_approved:
         return RedirectResponse("/auth/pending", status_code=302)
+    allowed_sub_ids, categories = _get_access_context(user, db)
+    if allowed_sub_ids is not None and sub_id not in allowed_sub_ids:
+        return RedirectResponse("/", status_code=302)
     sub = db.query(SubCategory).filter(SubCategory.id == sub_id).first()
     if not sub:
-        return RedirectResponse("/")
-    materials = db.query(Material).filter(Material.subcategory_id == sub_id, Material.is_published == True).order_by(Material.order).all()
+        return RedirectResponse("/", status_code=302)
+    materials = db.query(Material).filter(
+        Material.subcategory_id == sub_id, Material.is_published == True
+    ).order_by(Material.order).all()
     progress_map = {}
     if user:
-        progs = db.query(UserProgress).filter(UserProgress.user_id == user.id, UserProgress.material_id.in_([m.id for m in materials])).all()
+        progs = db.query(UserProgress).filter(
+            UserProgress.user_id == user.id,
+            UserProgress.material_id.in_([m.id for m in materials])
+        ).all()
         progress_map = {p.material_id: p for p in progs}
     total = len(materials)
     completed = sum(1 for m in materials if progress_map.get(m.id) and progress_map[m.id].is_completed)
-    categories = db.query(Category).order_by(Category.order).all()
-    return templates.TemplateResponse("subcategory.html", {"request": request, "user": user, "sub": sub, "materials": materials, "progress_map": progress_map, "total": total, "completed": completed, "categories": categories})
+    return templates.TemplateResponse("subcategory.html", {
+        "request": request, "user": user, "sub": sub, "materials": materials,
+        "progress_map": progress_map, "total": total, "completed": completed,
+        "categories": categories, "allowed_sub_ids": allowed_sub_ids,
+    })
+
 
 @router.get("/material/{material_id}", response_class=HTMLResponse)
 async def material_page(material_id: int, request: Request, db: Session = Depends(get_db)):
@@ -84,7 +129,10 @@ async def material_page(material_id: int, request: Request, db: Session = Depend
         return RedirectResponse("/auth/pending", status_code=302)
     material = db.query(Material).filter(Material.id == material_id, Material.is_published == True).first()
     if not material:
-        return RedirectResponse("/")
+        return RedirectResponse("/", status_code=302)
+    allowed_sub_ids, categories = _get_access_context(user, db)
+    if allowed_sub_ids is not None and material.subcategory_id not in allowed_sub_ids:
+        return RedirectResponse("/", status_code=302)
     progress = None
     bookmarked = False
     comments = []
@@ -97,19 +145,21 @@ async def material_page(material_id: int, request: Request, db: Session = Depend
             db.refresh(progress)
         bm = db.query(Bookmark).filter_by(user_id=user.id, material_id=material_id).first()
         bookmarked = bm is not None
-        # Ambil thread komentar privat milik user ini
         comments = db.query(Comment).filter_by(
             material_id=material_id, user_id=user.id
         ).order_by(Comment.created_at).all()
-        # Tandai balasan admin sudah dibaca oleh user
         db.query(Comment).filter_by(
             material_id=material_id, user_id=user.id, is_from_admin=True, is_read_by_user=False
         ).update({"is_read_by_user": True})
         db.commit()
-    related = db.query(Material).filter(Material.subcategory_id == material.subcategory_id, Material.is_published == True, Material.id != material_id).order_by(Material.order).limit(5).all()
-    categories = db.query(Category).order_by(Category.order).all()
-    mat_files = db.query(MaterialFile).filter(MaterialFile.material_id == material_id).order_by(MaterialFile.created_at).all()
-    # Quiz
+    related = db.query(Material).filter(
+        Material.subcategory_id == material.subcategory_id,
+        Material.is_published == True,
+        Material.id != material_id
+    ).order_by(Material.order).limit(5).all()
+    mat_files = db.query(MaterialFile).filter(
+        MaterialFile.material_id == material_id
+    ).order_by(MaterialFile.created_at).all()
     quiz = db.query(Quiz).filter(Quiz.material_id == material_id, Quiz.is_active == True).first()
     quiz_attempt = None
     quiz_answers_map = {}
@@ -139,7 +189,9 @@ async def material_page(material_id: int, request: Request, db: Session = Depend
         "mat_files": mat_files,
         "quiz": quiz, "quiz_attempt": quiz_attempt,
         "quiz_answers_map": quiz_answers_map, "best_attempt": best_attempt,
+        "allowed_sub_ids": allowed_sub_ids,
     })
+
 
 @router.post("/material/{material_id}/comment")
 async def post_comment(material_id: int, request: Request, content: str = Form(...), db: Session = Depends(get_db)):
@@ -148,6 +200,10 @@ async def post_comment(material_id: int, request: Request, content: str = Form(.
         return RedirectResponse("/auth/login", status_code=302)
     if not user.is_approved:
         return RedirectResponse("/auth/pending", status_code=302)
+    allowed_sub_ids, _ = _get_access_context(user, db)
+    material = db.query(Material).filter(Material.id == material_id).first()
+    if not material or (allowed_sub_ids is not None and material.subcategory_id not in allowed_sub_ids):
+        return RedirectResponse("/", status_code=302)
     if content.strip():
         db.add(Comment(
             material_id=material_id,
@@ -160,6 +216,7 @@ async def post_comment(material_id: int, request: Request, content: str = Form(.
         db.commit()
     return RedirectResponse(f"/material/{material_id}#komentar", status_code=302)
 
+
 @router.post("/material/{material_id}/quiz")
 async def submit_quiz(material_id: int, request: Request, db: Session = Depends(get_db)):
     user = await get_current_user_from_cookie(request, db)
@@ -167,6 +224,10 @@ async def submit_quiz(material_id: int, request: Request, db: Session = Depends(
         return RedirectResponse("/auth/login", status_code=302)
     if not user.is_approved:
         return RedirectResponse("/auth/pending", status_code=302)
+    allowed_sub_ids, _ = _get_access_context(user, db)
+    material = db.query(Material).filter(Material.id == material_id).first()
+    if not material or (allowed_sub_ids is not None and material.subcategory_id not in allowed_sub_ids):
+        return RedirectResponse("/", status_code=302)
     quiz = db.query(Quiz).filter(Quiz.material_id == material_id, Quiz.is_active == True).first()
     if not quiz or not quiz.questions:
         return RedirectResponse(f"/material/{material_id}", status_code=302)
@@ -211,6 +272,10 @@ async def mark_complete(material_id: int, request: Request, db: Session = Depend
         return RedirectResponse("/auth/login", status_code=302)
     if not user.is_approved:
         return RedirectResponse("/auth/pending", status_code=302)
+    allowed_sub_ids, _ = _get_access_context(user, db)
+    material = db.query(Material).filter(Material.id == material_id).first()
+    if not material or (allowed_sub_ids is not None and material.subcategory_id not in allowed_sub_ids):
+        return RedirectResponse("/", status_code=302)
     from datetime import datetime
     progress = db.query(UserProgress).filter_by(user_id=user.id, material_id=material_id).first()
     if not progress:
@@ -221,6 +286,7 @@ async def mark_complete(material_id: int, request: Request, db: Session = Depend
     db.commit()
     return RedirectResponse(f"/material/{material_id}", status_code=302)
 
+
 @router.post("/material/{material_id}/bookmark")
 async def toggle_bookmark(material_id: int, request: Request, db: Session = Depends(get_db)):
     user = await get_current_user_from_cookie(request, db)
@@ -228,6 +294,10 @@ async def toggle_bookmark(material_id: int, request: Request, db: Session = Depe
         return RedirectResponse("/auth/login", status_code=302)
     if not user.is_approved:
         return RedirectResponse("/auth/pending", status_code=302)
+    allowed_sub_ids, _ = _get_access_context(user, db)
+    material = db.query(Material).filter(Material.id == material_id).first()
+    if not material or (allowed_sub_ids is not None and material.subcategory_id not in allowed_sub_ids):
+        return RedirectResponse("/", status_code=302)
     bm = db.query(Bookmark).filter_by(user_id=user.id, material_id=material_id).first()
     if bm:
         db.delete(bm)
@@ -236,6 +306,7 @@ async def toggle_bookmark(material_id: int, request: Request, db: Session = Depe
     db.commit()
     return RedirectResponse(f"/material/{material_id}", status_code=302)
 
+
 @router.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request, db: Session = Depends(get_db)):
     user = await get_current_user_from_cookie(request, db)
@@ -243,11 +314,20 @@ async def dashboard(request: Request, db: Session = Depends(get_db)):
         return RedirectResponse("/auth/login", status_code=302)
     if not user.is_approved:
         return RedirectResponse("/auth/pending", status_code=302)
+    allowed_sub_ids, categories = _get_access_context(user, db)
     bookmarks = db.query(Bookmark).filter_by(user_id=user.id).order_by(Bookmark.created_at.desc()).all()
+    if allowed_sub_ids is not None:
+        bookmarks = [b for b in bookmarks if b.material.subcategory_id in allowed_sub_ids]
     recent = db.query(UserProgress).filter_by(user_id=user.id).order_by(UserProgress.last_watched.desc()).limit(10).all()
+    if allowed_sub_ids is not None:
+        recent = [r for r in recent if r.material.subcategory_id in allowed_sub_ids]
     completed_count = db.query(UserProgress).filter_by(user_id=user.id, is_completed=True).count()
-    categories = db.query(Category).order_by(Category.order).all()
-    return templates.TemplateResponse("dashboard.html", {"request": request, "user": user, "bookmarks": bookmarks, "recent": recent, "completed_count": completed_count, "categories": categories})
+    return templates.TemplateResponse("dashboard.html", {
+        "request": request, "user": user, "bookmarks": bookmarks,
+        "recent": recent, "completed_count": completed_count,
+        "categories": categories, "allowed_sub_ids": allowed_sub_ids,
+    })
+
 
 @router.get("/profile", response_class=HTMLResponse)
 async def profile_page(request: Request, db: Session = Depends(get_db)):
@@ -256,8 +336,12 @@ async def profile_page(request: Request, db: Session = Depends(get_db)):
         return RedirectResponse("/auth/login", status_code=302)
     if not user.is_approved:
         return RedirectResponse("/auth/pending", status_code=302)
-    categories = db.query(Category).order_by(Category.order).all()
-    return templates.TemplateResponse("profile.html", {"request": request, "user": user, "categories": categories, "success": None, "error": None})
+    allowed_sub_ids, categories = _get_access_context(user, db)
+    return templates.TemplateResponse("profile.html", {
+        "request": request, "user": user, "categories": categories,
+        "success": None, "error": None, "allowed_sub_ids": allowed_sub_ids,
+    })
+
 
 @router.post("/profile")
 async def update_profile(request: Request, full_name: str = Form(...), bio: str = Form(""), db: Session = Depends(get_db)):
@@ -269,5 +353,9 @@ async def update_profile(request: Request, full_name: str = Form(...), bio: str 
     user.full_name = full_name
     user.bio = bio or None
     db.commit()
-    categories = db.query(Category).order_by(Category.order).all()
-    return templates.TemplateResponse("profile.html", {"request": request, "user": user, "categories": categories, "success": "Profil berhasil diperbarui", "error": None})
+    allowed_sub_ids, categories = _get_access_context(user, db)
+    return templates.TemplateResponse("profile.html", {
+        "request": request, "user": user, "categories": categories,
+        "success": "Profil berhasil diperbarui", "error": None,
+        "allowed_sub_ids": allowed_sub_ids,
+    })

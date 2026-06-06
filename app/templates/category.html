@@ -10,13 +10,14 @@
       <div>
         <h1 class="text-2xl font-bold text-gray-800">{{ category.name }}</h1>
         {% if category.description %}<p class="text-gray-500 mt-1">{{ category.description }}</p>{% endif %}
-        <p class="text-sm text-blue-600 mt-1">{{ category.subcategories|length }} sub-kategori</p>
+        {% set ns = namespace(visible=0) %}{% for sub in category.subcategories %}{% if allowed_sub_ids is not defined or allowed_sub_ids is none or sub.id in allowed_sub_ids %}{% set ns.visible = ns.visible + 1 %}{% endif %}{% endfor %}
+        <p class="text-sm text-blue-600 mt-1">{{ ns.visible }} sub-kategori</p>
       </div>
     </div>
   </div>
 
   <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-    {% for sub in category.subcategories %}
+    {% for sub in category.subcategories if (allowed_sub_ids is not defined or allowed_sub_ids is none or sub.id in allowed_sub_ids) %}
     <a href="/subcategory/{{ sub.id }}" class="bg-white rounded-xl shadow-sm p-5 hover:shadow-md transition hover:-translate-y-0.5 group">
       <div class="flex items-start gap-3">
         <div class="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center flex-shrink-0">
